@@ -1,0 +1,41 @@
+# -*- coding:utf-8 -*-
+__author__ = "q.p"
+__date__ = "2019-01-01"
+__version__ = '1.0.0'
+
+DEBUG = False
+SECRET_KEY = "123"
+UPLOAD_FOLDER = "D:\TEMP"
+UPLOADED_FOLDER = './oper_upload/'
+DATA_FOLDER = './app/static/assets/data/'
+ALLOWED_EXTENSIONS = {'txt', 'pdf', 'png', 'jpg', 'jpeg', 'gif', 'bmp'}
+SMS_FLAG = True  # # 是否允许发短息
+LOG_LEVEL = 'INFO'  # NOTSET,DEBUG,INFO,WARNING,ERR,CRITICAL
+LOG_NAME = 'python_crud'
+LOGIN_EXPIRE = 7200  # 登录过期时间
+
+# redis缓存配置
+REDIS_DB = 0
+REDIS_HOST = '127.0.0.1'
+REDIS_PORT = 6379
+REDIS_PWD = 'XXX'
+
+# 数据库配置
+SQLALCHEMY_DATABASE_URI = 'mysql://name:pwd@127.0.0.1:3306/test?charset=utf8'
+SQLALCHEMY_DATABASE_URI2 = 'mysql://name:pwd@127.0.0.1:3307/test?charset=utf8'
+DATABASE_QUERY_TIMEOUT = 0.5
+SQLALCHEMY_RECORD_QUERIES = True
+SQLALCHEMY_ECHO = False
+SQLALCHEMY_TRACK_MODIFICATIONS = True
+
+SQLALCHEMY_BINDS = {
+    'db1': SQLALCHEMY_DATABASE_URI,
+    'db2': SQLALCHEMY_DATABASE_URI2
+}
+
+# 异步任务推给Work的Celery配置:
+REDIS_DB2 = 0
+REDIS_HOST2 = '127.0.0.1'
+REDIS_PORT2 = 6379
+REDIS_PWD2 = 'XXX'
+REDIS_URL_REQUEST = 'redis://:%s@%s:%s/%s' % (REDIS_PWD2, REDIS_HOST2, REDIS_PORT2, REDIS_DB2)
