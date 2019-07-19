@@ -3,19 +3,18 @@ __author__ = "q.p"
 __date__ = "2019-01-01"
 __version__ = '1.0.0'
 
-DEBUG = False
+DEBUG = True
 SECRET_KEY = "123"
-UPLOAD_FOLDER = "D:\TEMP"
-UPLOADED_FOLDER = './oper_upload/'
+UPLOAD_FOLDER = "D:\project_tmp"
 DATA_FOLDER = './app/static/assets/data/'
 ALLOWED_EXTENSIONS = {'txt', 'pdf', 'png', 'jpg', 'jpeg', 'gif', 'bmp'}
 SMS_FLAG = True  # # 是否允许发短息
 LOG_LEVEL = 'INFO'  # NOTSET,DEBUG,INFO,WARNING,ERR,CRITICAL
-LOG_NAME = 'python_crud'
+LOG_NAME = 'python_crud.log'
 LOGIN_EXPIRE = 7200  # 登录过期时间
 
 # redis缓存配置
-REDIS_DB = 0
+REDIS_DB = 15
 REDIS_HOST = '127.0.0.1'
 REDIS_PORT = 6379
 REDIS_PWD = 'XXX'

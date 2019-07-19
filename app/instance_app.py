@@ -19,7 +19,7 @@ app.config['DEBUG'] = DEBUG
 app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
 app.config['SECRET_KEY'] = SECRET_KEY
 
-app.config['SQLALCHEMY_ECHO'] = SQLALCHEMY_ECHO
+app.config['SQLALCHEMY_ECHO'] = True
 app.config['SQLALCHEMY_DATABASE_URI'] = SQLALCHEMY_DATABASE_URI
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = SQLALCHEMY_TRACK_MODIFICATIONS
 app.config['DATABASE_QUERY_TIMEOUT'] = DATABASE_QUERY_TIMEOUT  # 配置查询超时时间
@@ -33,20 +33,20 @@ excel.init_excel(app)
 @app.before_request
 def before_request():
     logger.info('url: %s ,data: %s' % (request.path, request.values.to_dict()), extra={"type": request.method})
-    if request.path in NOT_AUTH_API or (request.path.split('.')[-1] in ALLOWED_EXTENSIONS):
-        pass
-    else:
-        token = request.values.get('token', None)
-        if not token:
-            if request.json:
-                token = request.json.get('token', None)
-        if token:
-            user = rds.hgetall(key_token(token))
-            if not user:
-                return js(AUTH_FAIL, "TOKEN_ERR", None)
-            rds.expire(key_token(token), LOGIN_EXPIRE)
-        else:
-            return js(AUTH_FAIL, "TOKEN_ERR", None)
+    # if request.path in NOT_AUTH_API or (request.path.split('.')[-1] in ALLOWED_EXTENSIONS):
+    #     pass
+    # else:
+    #     token = request.values.get('token', None)
+    #     if not token:
+    #         if request.json:
+    #             token = request.json.get('token', None)
+    #     if token:
+    #         user = rds.hgetall(key_token(token))
+    #         if not user:
+    #             return js(AUTH_FAIL, "TOKEN_ERR", None)
+    #         rds.expire(key_token(token), LOGIN_EXPIRE)
+    #     else:
+    #         return js(AUTH_FAIL, "TOKEN_ERR", None)
 
 
 @app.after_request
@@ -74,14 +74,12 @@ def auth_err(e):
 
 @app.errorhandler(405)
 def param_err(e):
-    logger.error(traceback.format_exc(), extra={"key": e.__class__})
-    return js(PARAM_ERR, e, None)
+    return js(PARAM_ERR, str(e), None)
 
 
 @app.errorhandler(406)
 def obj_not_find(e):
-    logger.error(traceback.format_exc(), extra={"key": e.__class__})
-    return js(OK, e, None)
+    return js(OK, str(e), None)
 
 
 @app.errorhandler(500)

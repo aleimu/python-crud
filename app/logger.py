@@ -15,10 +15,10 @@ init_logger.setLevel(LOG_LEVEL)
 log_format = '%(asctime)s|%(process)d|%(levelname)s|%(filename)s|%(funcName)s|%(lineno)d|%(keyword)s|%(user)s|%(action)s|%(obj)s|%(obj_id)s|%(result)s|%(type)s|%(message)s'
 file_format = logging.Formatter(log_format)
 # 日志轮转
-tr_handler = TimedRotatingFileHandler(log_path + LOG_NAME, when='midnight', encoding='utf-8')
-tr_handler.setFormatter(file_format)
-tr_handler.suffix = "_%Y%m%d.log"
-init_logger.addHandler(tr_handler)
+# tr_handler = TimedRotatingFileHandler(log_path + LOG_NAME, when='midnight', encoding='utf-8')
+# tr_handler.setFormatter(file_format)
+# tr_handler.suffix = "_%Y%m%d.log"
+# init_logger.addHandler(tr_handler)
 # 控制台日志 --本地调试时打开
 import sys
 h_console = logging.StreamHandler(sys.stdout)
@@ -35,7 +35,7 @@ class LoggerAdapter(logging.LoggerAdapter):
         if 'extra' not in kwargs:
             kwargs["extra"] = self.extra
         else:
-            for k in self.extra.iterkeys():
+            for k in self.extra.keys():
                 if k not in kwargs['extra'].keys():
                     kwargs['extra'][k] = self.extra[k]
         return msg, kwargs

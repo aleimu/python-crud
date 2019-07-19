@@ -57,7 +57,7 @@ def uploaded_file(filename):
 
 
 @advert.route('/group', methods=['POST', 'GET', "PUT", "DELETE"])
-def ad_group():
+def crud_group():
     """分组的CRUD"""
     req_arg = get_arg()
     gid = req_arg.get('id')
@@ -66,13 +66,14 @@ def ad_group():
 
     if request.method == "GET":
         if gid:
-            group_obj = ad_group.query.filter_by(id=id).first()
+            # group_obj = ad_group.query.filter_by(id=id).first()
+            group_obj = ad_group.to_first(id=gid)
         else:
-            group_obj = ad_group.query.filter.all()
-        return all2dict(group_obj)
+            group_obj = ad_group.query.filter().all()
+        return js(cs.OK, None, all2dict(group_obj))
     if request.method == "PUT":
-        if id:
-            group_obj = ad_group.query.filter_by(id=id).first()
+        if gid:
+            group_obj = ad_group.query.filter_by(id=gid).first()
             if not group_obj:
                 return js(cs.PARAM_ERR, "分组不存在")
             group_check = ad_group.query.filter_by(group=gname).first()
@@ -88,13 +89,13 @@ def ad_group():
             group_obj = ad_group.query.filter_by(group=gname).first()
             if group_obj:
                 return js(cs.PARAM_ERR, "组名已存在")
-            group_obj = values2db(req_arg, ad_group, ("group", "note"))
+            group_obj = values2db(req_arg, ad_group(), ("group", "note"))
             db.session.add(group_obj)
         else:
             return js(cs.PARAM_ERR)
     if request.method == "DELETE":
-        if id:
-            group_obj = ad_group.query.filter_by(id=id).first()
+        if gid:
+            group_obj = ad_group.query.filter_by(id=gid).first()
             db.session.delete(group_obj)
         else:
             return js(cs.PARAM_ERR)
@@ -103,7 +104,7 @@ def ad_group():
 
 
 @advert.route('/image', methods=['POST', 'GET', "PUT", "DELETE"])
-def ad_image():
+def crud_image():
     """图片的CRUD"""
     req_arg = get_arg()
     pid = req_arg.get('id')  # 图片id
@@ -126,12 +127,12 @@ def ad_image():
             group_check = ad_group.query.filter_by(id=group_id).first()
             if not group_check:
                 return js(cs.PARAM_ERR, "组ID不存在")
-            img_obj = values2db(req_arg, ad_image, ("image_name", "image_url", "note", "group_id"))
+            img_obj = values2db(req_arg, ad_image(), ("image_name", "image_url", "note", "group_id"))
             db.session.add(img_obj)
         else:
             return js(cs.PARAM_ERR)
     elif request.method == "POST":
-        img_obj = values2db(req_arg, ad_image, ("image_name", "image_url", "note", "group_id"))
+        img_obj = values2db(req_arg, ad_image(), ("image_name", "image_url", "note", "group_id"))
         db.session.add(img_obj)
     elif request.method == "DELETE":
         if pid:
@@ -179,7 +180,7 @@ def set_ad_style():
             "position", "system", "note", "up_time", "down_time")
     if request.methods == "POST":
         try:
-            img_obj = values2db(req_arg, ad_style, need)
+            img_obj = values2db(req_arg, ad_style(), need)
             code = str(uuid.uuid1())
             img_obj.code = code
             db.session.add(img_obj)

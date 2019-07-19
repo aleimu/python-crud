@@ -8,7 +8,7 @@ import time
 import datetime
 from flask import json, jsonify, make_response, request, abort
 from functools import wraps
-from tools import PARAM_ERR, ALLOWED_EXTENSIONS
+from .constant import PARAM_ERR, ALLOWED_EXTENSIONS
 from sqlalchemy.ext.declarative import DeclarativeMeta
 
 
@@ -159,7 +159,7 @@ def first2dict(db_obj):
                 new_dict[k] = None
     else:
         new_dict = vars(db_obj)
-        del new_dict["_sa_app_state"]
+        del new_dict["_sa_instance_state"]
     return new_dict
 
 
