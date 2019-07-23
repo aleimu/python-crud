@@ -11,7 +11,7 @@ class ad_image(db.Model, Base):  # 资源分组中的图片
     __tablename__ = 'ad_image'
 
     id = Column(Integer, primary_key=True, autoincrement=True)
-    group_id = Column(String(64), nullable=False)  # 组名ad_group.id
+    group_id = Column(Integer, nullable=False)  # 组名ad_group.id
     image_name = Column(String(100))  # 图片存放链接
     image_url = Column(String(100))  # 图片存放链接
     note = Column(String(10))  # 备注

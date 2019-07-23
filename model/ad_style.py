@@ -18,11 +18,11 @@ class ad_style(db.Model, Base):  # 广告展示方式与设置
     oper_uname = Column(String(11))  # 操作人username
     status = Column(Integer, default=2)  # 状态(0：已下架 1：已上架 2:暂存未发布 3:已删除弃用)  -> 同一个位置只能上架一个产品和图片展示方式有关
     close = Column(Integer, default=0)  # 是否可点击关闭(0：可关闭；1：不可关闭 )
-    mode = Column(String(11), default=0)  # 图片展示方式: 轮播,横幅
-    frequency = Column(String(3), default=0.5)  # 图片轮播的频率0.1-0.5s
-    position = Column(String(3), default=1)  # 图片摆放位置: 1:首页banner,2:首页底部,3:商场banner
-    system = Column(Integer, default=1)  # 1:运营后台注册, 2:司机端注册, 3:调度端
-    note = Column(String(10))  # 备注
+    mode = Column(Integer, default=0)  # 图片展示方式: 轮播,横幅
+    frequency = Column(String(5), default=0.5)  # 图片轮播的频率0.1-0.5s
+    position = Column(String(5), default=1)  # 图片摆放位置: 1:首页banner,2:首页底部,3:商场banner
+    system = Column(Integer, default=1)  # 1: driver_advert, 2:dispatch_advert, 3:order_advert, 4: camel_advert
+    note = Column(String(32))  # 备注
     up_time = Column(TIMESTAMP, default=datetime.now)  # 上架时间
     down_time = Column(TIMESTAMP, default=datetime.now, onupdate=datetime.now)  # 下架时间
     create_time = Column(TIMESTAMP, default=datetime.now)  # 提交时间

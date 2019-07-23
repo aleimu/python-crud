@@ -16,4 +16,7 @@ register_blueprint()
 
 if __name__ == "__main__":
     # print(vars(app))
+    from app import scheduler
+
+    scheduler.start()  # 避免循环导入报错
     app.run(host='0.0.0.0', port=3001, threaded=True)

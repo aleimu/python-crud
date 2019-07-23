@@ -3,7 +3,7 @@ __author__ = "q.p"
 __date__ = "2019-01-01"
 __version__ = '1.0.0'
 
-DEBUG = True
+DEBUG = False
 SECRET_KEY = "123"
 UPLOAD_FOLDER = "D:\project_tmp"
 DATA_FOLDER = './app/static/assets/data/'
@@ -17,7 +17,7 @@ LOGIN_EXPIRE = 7200  # 登录过期时间
 REDIS_DB = 15
 REDIS_HOST = '127.0.0.1'
 REDIS_PORT = 6379
-REDIS_PWD = 'XXX'
+REDIS_PWD = ''
 
 # 数据库配置
 SQLALCHEMY_DATABASE_URI = 'mysql://name:pwd@127.0.0.1:3306/test?charset=utf8'

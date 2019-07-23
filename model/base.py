@@ -16,7 +16,7 @@ class CommonBase(object):
     # create_time = Column(TIMESTAMP, default=datetime.now)
     # update_time = Column(TIMESTAMP, default=datetime.now, onupdate=datetime.now)
 
-    def to_dict(self):
+    def get_dict(self):
         dict = {}
         dict.update(self.__dict__)
         if "_sa_instance_state" in dict:
@@ -24,12 +24,12 @@ class CommonBase(object):
         return dict
 
     @classmethod
-    def to_first(self, **kwargs):
+    def get_first(self, **kwargs):
         obj = self.query.filter_by(**kwargs).first()
         return obj
 
     @classmethod
-    def to_all(self, **kwargs):
+    def get_all(self, **kwargs):
         obj = self.query.filter_by(**kwargs).all()
         return obj
 

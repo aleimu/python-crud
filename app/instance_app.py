@@ -5,21 +5,19 @@ __version__ = '1.0.0'
 
 import traceback
 import sqlalchemy.exc
-from flask import Flask, request, abort
+from flask import Flask, request
 from flask_sqlalchemy import SQLAlchemy, get_debug_queries
 import flask_excel as excel
-
 from .config import *
 from .logger import logger
-from cache import rds, key_token
-from tools import APIEncoder, js, SERVER_ERR, DB_ERR, AUTH_FAIL, NOT_AUTH_API, PARAM_ERR, OK
+from tools import APIEncoder, js, SERVER_ERR, DB_ERR, AUTH_FAIL, PARAM_ERR, OK
 
 app = Flask(__name__)
 app.config['DEBUG'] = DEBUG
 app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
 app.config['SECRET_KEY'] = SECRET_KEY
 
-app.config['SQLALCHEMY_ECHO'] = True
+app.config['SQLALCHEMY_ECHO'] = False
 app.config['SQLALCHEMY_DATABASE_URI'] = SQLALCHEMY_DATABASE_URI
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = SQLALCHEMY_TRACK_MODIFICATIONS
 app.config['DATABASE_QUERY_TIMEOUT'] = DATABASE_QUERY_TIMEOUT  # 配置查询超时时间
