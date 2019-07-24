@@ -11,7 +11,7 @@ import flask_excel as excel
 from config import *
 from logger import logger
 from cache import rds, rds_token
-from tools import APIEncoder, js, SERVER_ERR, DB_ERR, AUTH_FAIL, PARAM_ERR, OK
+from tools import APIEncoder, js, SERVER_ERR, DB_ERR, AUTH_FAIL, PARAM_ERR, OK, NOT_AUTH_API
 
 
 def makeAppDb():
@@ -38,17 +38,18 @@ excel.init_excel(app)
 @app.before_request
 def before_request():
     logger.info('url: %s ,data: %s' % (request.path, request.values.to_dict()), extra={"type": request.method})
-    # token = request.values.get('token', None)
-    # if not token:
-    #     if request.json:
-    #         token = request.json.get('token', None)
-    # if token:
-    #     user_obj = rds.hgetall(rds_token(token))
-    #     if not user_obj:
-    #         return js(AUTH_FAIL)
-    #     rds.expire(rds_token(token), LOGIN_EXPIRE)
-    # else:
-    #     return js(AUTH_FAIL)
+    if request.path not in NOT_AUTH_API:
+        token = request.values.get('token', None)
+        if not token:
+            if request.json:
+                token = request.json.get('token', None)
+        if token:
+            user_obj = rds.hgetall(rds_token(token))
+            if not user_obj:
+                return js(AUTH_FAIL)
+            rds.expire(rds_token(token), LOGIN_EXPIRE)
+        else:
+            return js(AUTH_FAIL)
 
 
 @app.after_request

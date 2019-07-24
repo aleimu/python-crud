@@ -13,7 +13,9 @@ https://github.com/aleimu/python-crud
 1. [Flask](https://github.com/pallets/flask): 轻量级Web框架，可以说是Python中最易用的了 
 2. [Flask-SQLAlchemy](https://github.com/pallets/flask-sqlalchemy): ORM工具。本项目需要配合Mysql使用,sqlalchemy的flask包装,更易使用
 3. [Redis](https://github.com/andymccurdy/redis-py): Python Redis客户端
-4. 本项目是使用token验证
+4. [apscheduler](https://github.com/agronholm/apscheduler) : python常用的定时任务管理库
+5. [Flask-Excel](https://github.com/pyexcel-webwares/Flask-Excel) : 报表导出
+6. 本项目是使用token验证,
 
 本项目已经预先实现了一些常用的代码方便参考和复用:
 
@@ -21,9 +23,9 @@ https://github.com/aleimu/python-crud
 2. 实现了```/v1/user/register```用户注册接口
 3. 实现了```/v1/user/login```用户登录接口
 4. 实现了```/v1/user/logout```用户登出接口(需要登录后获取token)
-5. 图片分组的CRUD
-6. 图片的展示策略的CRUD
-7. 图片以及连接的访问触发的访问量/点击量/统计等CRUD
+5. 图片分组的CRUD  ```/v1/advert/group```,```/v1/advert/image```
+6. 图片的展示策略的CRUD ```/v1/advert/style```
+7. 图片以及连接的访问触发的访问量/点击量/统计等CRUD ```/v1/advert/list```,```/v1/advert/statistic```,
 
 
 
