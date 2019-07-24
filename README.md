@@ -6,7 +6,7 @@ https://github.com/aleimu/python-crud
 
 本项目采用了一系列Python中比较流行的组件，可以以本项目为基础快速搭建Restful Web API, 这里主要是放了一些常用的CRUD操作示例和自己积累的通用函数.
 
-## 特色
+## 说明
 
 本项目使用了下面的常用组件：
 
@@ -27,7 +27,7 @@ https://github.com/aleimu/python-crud
 
 
 
-本项目已经预先创建了一系列文件夹划分出下列模块:
+## 本项目已经预先创建了一系列文件夹划分出下列模块:
 
 1. app 放app,db,log的实例
 2. model 文件夹负责存储数据库模型和数据库操作相关的代码
