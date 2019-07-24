@@ -8,34 +8,17 @@ import time
 import uuid
 import traceback
 from flask import send_from_directory, Blueprint, abort, json
-from app import db, request, UPLOAD_FOLDER, ALLOWED_EXTENSIONS, DATA_FOLDER
+from app import db, request, UPLOAD_FOLDER
 from tools import constant as cs, validate_params, js, get_arg, all2dict, first2dict, values2db
 from model import ad_style, ad_ctr, ad_group, ad_image
 from cache import rds
 
 advert = Blueprint('advert', __name__, url_prefix='/v1/advert')
 
-big_flag = "dispatch_image_big"
-small_flag = "dispatch_image_small"
-
-show_key = "hour_show_{}".format  # 单条广告的曝光量的redis中的key
-click_key = "hour_code_{}".format  # click_key = "code%s"
-day_show_key = "day_show_{}".format  # 单条广告的日曝光量的redis中的key,按0-23小时段统计
-day_click_key = "day_click_{}".format
-group_dict = {'1': 'driver_advert', '2': 'dispatch_advert', '3': 'order_advert', '4': "camel_advert"}
-
-
-def rds_key(code):
-    show_key = "hour_show_{}".format(code)  # 单条广告的曝光量的redis中的key
-    click_key = "hour_code_{}".format(code)  # click_key = "code%s"
-    day_show_key = "day_show_{}".format(code)  # 单条广告的日曝光量的redis中的key,按0-23小时段统计
-    day_click_key = "day_click_{}".format(code)
-    return show_key, click_key, day_show_key, day_click_key
-
 
 def allowed_file(filename):
     tail = '.' in filename and filename.rsplit('.', 1)[1]
-    if tail.lower() in ALLOWED_EXTENSIONS:
+    if tail.lower() in cs.ALLOWED_EXTENSIONS:
         return tail
     else:
         return False
@@ -58,12 +41,29 @@ def upload_file():
 
 
 @advert.route('/<string:filename>', methods=['GET'])  # 访问图片
-@advert.route('/uploaded/<string:filename>', methods=['GET'])
+@advert.route('/upload/<string:filename>', methods=['GET'])
 def uploaded_file(filename):
     if allowed_file(filename):
         return send_from_directory(UPLOAD_FOLDER, filename)
     else:
         return js(cs.PARAM_ERR, None, None)
+
+
+advert = Blueprint('advert', __name__)
+
+show_key = "hour_show_{}".format  # 单条广告的曝光量的redis中的key
+click_key = "hour_click_{}".format  # click_key = "code%s"
+day_show_key = "day_show_{}".format  # 单条广告的日曝光量的redis中的key,按0-23小时段统计
+day_click_key = "day_click_{}".format
+group_dict = {'1': 'driver_advert', '2': 'dispatch_advert', '3': 'order_advert', '4': "camel_advert"}
+
+
+def rds_key(code):
+    show = show_key(code)  # 单条广告的曝光量的redis中的key
+    click = click_key(code)  # click_key = "code%s"
+    day_show = day_show_key(code)  # 单条广告的日曝光量的redis中的key,按0-23小时段统计
+    day_click = day_click_key(code)
+    return show, click, day_show, day_click
 
 
 @advert.route('/show')
@@ -92,8 +92,7 @@ def crud_group():
 
     if request.method == "GET":
         if gid:
-            # group_obj = ad_group.query.filter_by(id=id).first()
-            group_obj = ad_group.to_first(id=gid)
+            group_obj = ad_group.query.filter(id=gid).first()
         else:
             group_obj = ad_group.query.filter().all()
         return js(cs.OK, None, all2dict(group_obj))
@@ -192,11 +191,11 @@ def get_ad_style():
                 if item.get("down_time") < now_time:  # 删除失效广告缓存
                     raise Exception("%s Advert Expired" % rds_key)
         else:
-            ad_dict = get_refresh(group_key)
+            ad_dict = refresh(group_key)
             rds.set(rds_key, json.dumps(ad_dict))  # 加上缓存
     except Exception as e:
         print(traceback.format_exc())
-        ad_dict = get_refresh(group_key)
+        ad_dict = refresh(group_key)
         print("ad_dict:", ad_dict, type(ad_dict))
         rds.set(rds_key, json.dumps(ad_dict))  # 加上缓存
     return js(cs.OK, None, ad_dict)
@@ -239,7 +238,7 @@ def set_ad_style():
             img_obj = ad_image.query.filter_by(id=image_id).first()
             if not img_obj:
                 return js(cs.PARAM_ERR, "图片ID不存在")
-            style_obj = ad_style.get_first(id=ad_id)
+            style_obj = ad_style.query.filter_by(id=ad_id).first()
             code = style_obj.code
             img_obj = values2db(req_arg, style_obj, need)
             db.session.add(img_obj)
@@ -251,7 +250,7 @@ def set_ad_style():
             ad_id = int(req_arg.get("id"))
             if not ad_id:
                 return js(cs.PARAM_ERR)
-            style_obj = ad_style.get_first(id=ad_id)
+            style_obj = ad_style.query.filter_by(id=ad_id).first()
             code = style_obj.code
             db.session.delete(style_obj)
         except Exception as e:
@@ -262,6 +261,71 @@ def set_ad_style():
     sync2redis(code, status)
     db.session.commit()
     return js(cs.OK)
+
+
+@advert.route('/list', methods=['GET'])
+def ad_list():
+    """广告汇总列表展示"""
+    req_arg = get_arg()
+    status = req_arg.get("status")
+    group_id = req_arg.get("group_id")
+    image_id = req_arg.get("image_id")
+    system_id = req_arg.get("system_id")
+    try:
+        ad_obj = db.session.query(ad_style.id, ad_style.code, ad_style.mode, ad_style.frequency, ad_style.position,
+                                  ad_style.system, ad_image.image_name, ad_image.image_url, ad_style.up_time,
+                                  ad_style.down_time, ad_style.status) \
+            .join(ad_image, ad_image.id == ad_style.image_id).filter()
+        if status:
+            ad_obj = ad_obj.filter(ad_style.status == status)
+        if system_id:
+            ad_obj = ad_obj.filter(ad_style.system == system_id)
+        if image_id:
+            ad_obj = ad_obj.filter(ad_style.image_id == image_id)
+        if group_id:
+            ad_obj = ad_obj.filter(ad_style.image_id == group_id)
+        ad_obj = ad_obj.all()
+        data = all2dict(ad_obj)
+        return js(cs.OK, None, data)
+    except Exception as e:
+        print(traceback.format_exc())
+        return js(cs.DB_ERR)
+
+
+@advert.route('/statistic', methods=['GET'])
+def statistic():
+    """多条广告展示量/点击量汇总列表展示"""
+    req_arg = get_arg()
+    code = req_arg.get("code")
+    start_date = req_arg.get("start_date")
+    end_date = req_arg.get("end_date")
+    page_index = req_arg.get('page_index')
+    page_size = req_arg.get('page_size')
+    sort = req_arg.get("sort")  # 图与表排序不一样
+    if not page_index or not page_size:
+        page_index = 1
+        page_size = 20
+    try:
+        ad_obj = db.session.query(ad_ctr.code, ad_ctr.show_count, ad_ctr.click_count, ad_ctr.crt,
+                                  ad_ctr.show_day, ad_ctr.click_day, ad_ctr.create_date, ad_ctr.create_time).filter()
+        if code:
+            ad_obj = ad_obj.filter(ad_ctr.code.in_(code.split(',')))
+        if sort:
+            ad_obj = ad_obj.order_by(ad_ctr.create_date.desc())
+        else:
+            ad_obj = ad_obj.order_by(ad_ctr.create_date)
+        if not start_date:
+            start_date = time.strftime('%Y-%m-%d %H:%M:%S')
+        if not end_date:
+            end_date = time.strftime('%Y-%m-%d %H:%M:%S')
+        ad_obj = ad_obj.filter(ad_ctr.create_date <= end_date, ad_ctr.create_date >= start_date).paginate(
+            int(page_index), int(page_size), False)
+        count = ad_obj.total
+        data = all2dict(ad_obj.items)
+        return js(cs.OK, None, {"count": count, "data": data})
+    except Exception as e:
+        print(traceback.format_exc())
+        return js(cs.DB_ERR)
 
 
 def sync2redis(code, status):
@@ -296,26 +360,20 @@ def merge_rds(code):
     show_count = rds.get(show_key)
     click_count = rds.get(click_key)
     rds.delete(show_key, click_key)
-    # print("show_count:", show_count)
-    # print("click_count:", click_count)
     if not show_count:
         show_count = 0
     if not click_count:
         click_count = 0
     redis_show_count = rds.hget(dshow_key, hour)
     redis_click_count = rds.hget(dclick_key, hour)
-    # print("redis_show_count:", redis_show_count)
-    # print("redis_click_count:", redis_click_count)
     if not redis_show_count:
         redis_show_count = 0
     if not redis_click_count:
         redis_click_count = 0
-    # 检查是否已提交过 FIXME
-    # print(dshow_key, hour, redis_show_count, show_count)
+    if not any([redis_click_count, redis_show_count]):  # 检查是否已提交过 FIXME
+        daily_init(code)
     now_show_count = rds.hset(dshow_key, hour, int(redis_show_count) + int(show_count))
     now_click_count = rds.hset(dclick_key, hour, int(redis_click_count) + int(click_count))
-    # print("now_show_count:", now_show_count)
-    # print("now_click_count:", now_click_count)
     return now_show_count, now_click_count
 
 
@@ -323,12 +381,9 @@ def merge_db(code):
     """将单条广告的日曝光量/日点击量/时段统计同步到mysql"""
     daily_show = rds.hgetall(day_show_key(code))
     daily_click = rds.hgetall(day_click_key(code))
-    # print("daily_stat:", code, daily_show, daily_click)
-    # print(daily_stat_show, daily_stat_click, '-------------------')
-    now_date = time.strftime('%Y-%m-%d %H:%M')
+    now_date = time.strftime('%Y-%m-%d')  # 按天统计
     scout = sum([int(x) for x in daily_show.values()])
     ccout = sum([int(x) for x in daily_click.values()])
-    print('sum:', scout, ccout)
     if scout:
         crt = float(ccout) / float(scout)
     else:
@@ -347,23 +402,28 @@ def merge_db(code):
     db.session.commit()
 
 
-def get_refresh(system=None, status=1):
+def refresh(system=None, status=1):
     """依据系统id,返回所有此系统的最新广告列表"""
-    now_time = time.strftime('%Y-%m-%d %H:%M:%S')
-    ad_obj = db.session.query(ad_style.id, ad_style.code, ad_style.mode, ad_style.frequency, ad_style.position,
-                              ad_style.system, ad_image.image_name, ad_image.image_url, ad_style.up_time,
-                              ad_style.down_time) \
-        .join(ad_image, ad_image.id == ad_style.image_id) \
-        .filter(ad_style.status == status)
-    if system:
-        ad_obj = ad_obj.filter(ad_style.system == system)
-    if now_time:
-        ad_obj = ad_obj.filter(ad_style.up_time <= now_time, ad_style.down_time >= now_time)
-    ad_obj = ad_obj.all()
-    if not ad_obj:
-        abort(406, "not find:%s" % system)
-    ad_dict = all2dict(ad_obj)
-    return ad_dict
+    ad_dict = dict()
+    try:
+        now_time = time.strftime('%Y-%m-%d %H:%M:%S')
+        ad_obj = db.session.query(ad_style.id, ad_style.code, ad_style.mode, ad_style.frequency, ad_style.position,
+                                  ad_style.system, ad_image.image_name, ad_image.image_url, ad_style.up_time,
+                                  ad_style.down_time) \
+            .join(ad_image, ad_image.id == ad_style.image_id) \
+            .filter(ad_style.status == status)
+        if system:
+            ad_obj = ad_obj.filter(ad_style.system == system)
+        if now_time:
+            ad_obj = ad_obj.filter(ad_style.up_time <= now_time, ad_style.down_time >= now_time)
+        ad_obj = ad_obj.all()
+        if not ad_obj:
+            abort(406, "not find:%s" % system)
+        ad_dict = all2dict(ad_obj)
+        return ad_dict
+    except Exception as e:
+        print(traceback.format_exc())
+        return ad_dict
 
 
 #########################################################内部接口#######################################################
@@ -372,7 +432,7 @@ def get_refresh(system=None, status=1):
 def cron_job_hour():
     """按小数刷新redis数据到按天统计中"""
     print("-----------cron_job_hour---------------")
-    ad_dict = get_refresh()
+    ad_dict = refresh()
     # print("ad_dict:", ad_dict)
     for item in ad_dict:
         try:
@@ -386,7 +446,7 @@ def cron_job_hour():
 def cron_job_day():
     """按天刷新redis中数据到db中"""
     print("-----------cron_job_day---------------")
-    ad_dict = get_refresh()
+    ad_dict = refresh()
     # print("ad_dict:", ad_dict)
     for item in ad_dict:
         try:
@@ -397,7 +457,6 @@ def cron_job_day():
                 daily_init(code)
         except Exception as e:
             print(traceback.format_exc())
-
     return js(cs.OK)
 
 
@@ -405,7 +464,7 @@ def cron_job_day():
 def cron_job_fresh():
     """重置redis中的key"""
     print("-----------cron_job_fresh---------------")
-    ad_dict = get_refresh()
+    ad_dict = refresh()
     # print("ad_dict:", ad_dict)
     for item in ad_dict:
         code = item.get("code")

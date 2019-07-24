@@ -8,7 +8,7 @@ from route import cron_job_hour, cron_job_day
 from cache import rds
 
 show_key = "hour_show_{}".format  # 单条广告的曝光量的redis中的key
-click_key = "hour_code_{}".format  # click_key = "code%s"
+click_key = "hour_click_{}".format  # click_key = "code%s"
 day_show_key = "day_show_{}".format  # 单条广告的日曝光量的redis中的key,按0-23小时段统计
 day_click_key = "day_click_{}".format
 
@@ -35,10 +35,10 @@ def click_count():
 
 scheduler = BackgroundScheduler()
 scheduler.add_job(func=aps_test, trigger='cron', second='*/50')
-scheduler.add_job(func=cron_job_hour, trigger='cron', minute='*/1')
-scheduler.add_job(func=cron_job_day, trigger='cron', minute='*/2')
-scheduler.add_job(func=show_count, trigger='cron', second='*/5')
-scheduler.add_job(func=click_count, trigger='cron', second='*/15')
+scheduler.add_job(func=cron_job_hour, trigger='cron', hour='*/1')
+scheduler.add_job(func=cron_job_day, trigger='cron', day='*/1')
+scheduler.add_job(func=show_count, trigger='cron', second='*/30')
+scheduler.add_job(func=click_count, trigger='cron', minute='*/5')
 
 scheduler.start()
 

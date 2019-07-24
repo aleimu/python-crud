@@ -9,7 +9,7 @@ from app.logger import logger
 from app.config import SMS_FLAG
 
 celery = celery.Celery()
-celery.config_from_object('cache/celeryconfig')
+celery.config_from_object('cache/celery_config')
 # celery define
 sms_queue = 'sub_push'
 sms_template = 'push_srv.common_use'  # 使用短信通用模板,短信全部内容由自己定
