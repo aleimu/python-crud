@@ -6,8 +6,7 @@ __doc__ = "通用函数,适配flask特性的一些常用函数,降低重复操�
 
 import time
 import datetime
-from flask import json, jsonify, make_response, request, abort
-from functools import wraps
+from flask import json, jsonify, request, abort
 from constant import PARAM_ERR, ALLOWED_EXTENSIONS
 from sqlalchemy.ext.declarative import DeclarativeMeta
 
@@ -36,21 +35,20 @@ def is_alphabet(uchar):
         return False
 
 
+def time_cmp(first_time, second_time, fomat="('%Y-%m-%d %H:%M:%S')"):
+    """字符串形式的时间比较大小"""
+    return int(time.strftime(fomat, first_time)) - int(time.strftime(fomat, second_time))
+
+
 def allowed_file(filename):
     return '.' in filename and filename.rsplit('.', 1)[1] in ALLOWED_EXTENSIONS
 
 
-def allow_cross_domain(fun):
-    @wraps(fun)
-    def wrapper_fun(*args, **kwargs):
-        rst = make_response(fun(*args, **kwargs))
-        rst.headers['Access-Control-Allow-Origin'] = '*'
-        rst.headers['Access-Control-Allow-Methods'] = 'PUT,GET,POST,DELETE'
-        allow_headers = "Referer, Accept, Origin, User-Agent"
-        rst.headers['Access-Control-Allow-Headers'] = allow_headers
-        return rst
-
-    return wrapper_fun
+def get_arg(source='values'):
+    if hasattr(request, source):
+        return getattr(request, source)
+    else:
+        abort(500)
 
 
 def js(code, err=None, data=None):
@@ -64,24 +62,12 @@ def js(code, err=None, data=None):
     return jsonify({'code': code, 'errmsg': err, 'data': data})
 
 
-def validate_params(required=None):
-    """必须参数检查"""
-
-    def decorator(func):
-        @wraps(func)
-        def decorated_func(*args, **kwargs):
-            params_dict = request.values.to_dict()
-            if request.json:
-                params_dict.update(request.json)
-            for arg in required:
-                if not params_dict.get(arg, None):
-                    return js(PARAM_ERR, '%s 参数缺失' % arg, {})
-            val = func(*args, **kwargs)
-            return val
-
-        return decorated_func
-
-    return decorator
+def json_response(code, data=None, message=None):
+    if isinstance(data, list) and all([hasattr(x, 'to_json') for x in data]):
+        data = [x.to_json() for x in data]
+    elif isinstance(data, DeclarativeMeta) and hasattr(data, 'to_json'):
+        data = data.to_json()
+    return js(code, message, data)
 
 
 class APIEncoder(json.JSONEncoder):
@@ -168,7 +154,7 @@ def values2db(values, db_model, inspect=(), space=False, alias=None):
     """
     将request.values装换为db实例: 1.限定值范围 2.别名 3.修改""为None
     :param values: request.values,{keys:values}
-    :param db_model: 实例化的db模型
+    :param db_model: 实例化的db模型如 User()
     :param alias: 别名,请求入参名称和数据库对应不上时使用
     :param inspect: 转换别名后,数据库需要的字段
     :param space: values中的空值转化成None写入数据库NULL
@@ -191,13 +177,141 @@ def values2db(values, db_model, inspect=(), space=False, alias=None):
     return db_model
 
 
-def get_arg(type='values'):
-    if hasattr(request, type):
-        return getattr(request, type)
-    else:
-        abort(500)
+class ParseError(BaseException):
+    def __init__(self, message):
+        self.message = message
 
 
-def time_cmp(first_time, second_time, fomat="('%Y-%m-%d %H:%M:%S')"):
-    """字符串形式的时间比较大小"""
-    return int(time.strftime(fomat, first_time)) - int(time.strftime(fomat, second_time))
+class AttrDict(dict):
+    def __setattr__(self, key, value):
+        self.__setitem__(key, value)
+
+    def __getattr__(self, item):
+        return self.__getitem__(item)
+
+    def __delattr__(self, item):
+        self.__delitem__(item)
+
+
+class Argument(object):
+    """
+    :param name: name of option
+    :param default: default value if the argument if absent
+    :param bool required: is required
+    """
+
+    def __init__(self, name, default=None, required=True, type=None, filter=None, help=None, nullable=False):
+        self.name = name
+        self.default = default
+        self.type = type
+        self.required = required
+        self.nullable = nullable
+        self.filter = filter
+        self.help = help
+        if not isinstance(self.name, str):
+            raise TypeError('Argument name must be string')
+        if filter and not callable(self.filter):
+            raise TypeError('Argument filter is not callable')
+
+    def parse(self, has_key, value):
+        if not has_key:
+            if self.required and self.default is None:
+                raise ParseError(self.help or 'Required Error: %s is required' % self.name)
+            else:
+                return self.default
+        elif value in [u'', '', None]:
+            if self.default is not None:
+                return self.default
+            elif not self.nullable and self.required:
+                raise ParseError(self.help or 'Value Error: %s must not be null' % self.name)
+            else:
+                return None
+        try:
+            if self.type:
+                if self.type in (list, dict) and isinstance(value, str):
+                    value = json.loads(value)
+                    assert isinstance(value, self.type)
+                elif self.type == bool and isinstance(value, str):
+                    assert value.lower() in ['true', 'false']
+                    value = value.lower() == 'true'
+                elif not isinstance(value, self.type):
+                    value = self.type(value)
+        except (TypeError, ValueError, AssertionError):
+            raise ParseError(self.help or 'Type Error: %s type must be %s' % (self.name, self.type))
+
+        if self.filter:
+            if not self.filter(value):
+                raise ParseError(self.help or 'Value Error: %s filter check failed' % self.name)
+        return value
+
+
+class BaseParser(object):
+    def __init__(self, *args):
+        self.args = []
+        for e in args:
+            if isinstance(e, str):
+                e = Argument(e)
+            elif not isinstance(e, Argument):
+                raise TypeError('%r is not instance of Argument' % e)
+            self.args.append(e)
+
+    def _get(self, key):
+        raise NotImplementedError
+
+    def _init(self, data):
+        raise NotImplementedError
+
+    def add_argument(self, **kwargs):
+        self.args.append(Argument(**kwargs))
+
+    def parse(self, data=None):
+        rst = AttrDict()
+        try:
+            self._init(data)
+            for e in self.args:
+                rst[e.name] = e.parse(*self._get(e.name))
+        except ParseError as err:
+            return None, err.message
+        return rst, None
+
+
+class JsonParser(BaseParser):
+    def __init__(self, *args):
+        self.__data = None
+        super(JsonParser, self).__init__(*args)
+
+    def _get(self, key):
+        return key in self.__data, self.__data.get(key)
+
+    def _init(self, data, source=request):
+        if data is None:
+            try:
+                self.__data = source.args.to_dict()
+                post_json = source.get_json()
+            except Exception as e:
+                raise ParseError('Invalid data source for parse')
+            if isinstance(post_json, dict):
+                self.__data.update(post_json or {})
+        else:
+            try:
+                if isinstance(data, (str, bytes)):
+                    data = data.decode('utf-8')
+                    self.__data = json.loads(data) if data else {}
+                else:
+                    assert hasattr(data, '__contains__')
+                    assert hasattr(data, 'get')
+                    assert callable(data.get)
+                    self.__data = data
+            except (ValueError, AssertionError):
+                raise ParseError('Invalid data type for parse')
+
+
+""" 使用样例
+form, error = JsonParser(
+    Argument('app_id', type=int),
+    Argument('env_id', type=int),
+    Argument('deploy_message', default=''),
+    Argument('deploy_restart', type=bool),
+    Argument('host_ids', type=list)
+).parse()
+"""

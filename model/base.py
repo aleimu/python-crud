@@ -2,19 +2,19 @@
 __author__ = "leimu"
 __date__ = "2018-09-21"
 
-from datetime import datetime
 from app import db
-from sqlalchemy import Integer, Column, String, TEXT, TIMESTAMP
-from sqlalchemy.ext.declarative import declarative_base
 
 
-class CommonBase(object):
-    # __tablename__ = 'tablename'
-    # __bind_key__ = 'db1'
+def db_session_commit():
+    try:
+        db.session.commit()
+    except Exception:
+        db.session.rollback()
+        raise
 
-    # id = Column(Integer, primary_key=True, autoincrement=True)
-    # create_time = Column(TIMESTAMP, default=datetime.now)
-    # update_time = Column(TIMESTAMP, default=datetime.now, onupdate=datetime.now)
+
+class Base(object):
+    __slots__ = ()
 
     def get_dict(self):
         dict = {}
@@ -33,11 +33,72 @@ class CommonBase(object):
         obj = self.query.filter_by(**kwargs).all()
         return obj
 
-    #
-    # @classmethod
-    # def check_exists(self, **kwargs):
-    #     bl = db.session.query(self.query.filter_by(**kwargs).exists()).scalar() is not None
-    #     return bl
+    def __init__(self, **kwargs):
+        pass
+
+    def save(self):
+        db.session.add(self)
+        db_session_commit()
+        return self
+
+    def delete(self, commit=True):
+        db.session.delete(self)
+        if commit:
+            db_session_commit()
+
+    def add(self):
+        db.session.add(self)
+
+    def update(self, **kwargs):
+        required_commit = False
+        for k, v in kwargs.items():
+            if hasattr(self, k) and getattr(self, k) != v:
+                required_commit = True
+                setattr(self, k, v)
+        if required_commit:
+            db_session_commit()
+        return required_commit
+
+    @classmethod
+    def upsert(self, where, **kwargs):
+        """更新或新增"""
+        record = self.query.filter_by(**where).first()
+        if record:
+            record.update(**kwargs)
+        else:
+            record = self(**kwargs).save()
+        return record
+
+    def to_json(self, remove=None, choose=None):
+        """
+        json序列化
+        :param remove: 排除的字段合集
+        :param choose: 选中的字段合集
+        :return: dict
+        """
+        if not hasattr(self, '__table__'):
+            raise AssertionError('<%r> does not have attribute for __table__' % self)
+        elif choose:
+            return {i: getattr(self, i) for i in choose}
+        elif remove:
+            return {i.name: getattr(self, i.name) for i in self.__table__.columns if i.name not in remove}
+        else:
+            return {i.name: getattr(self, i.name) for i in self.__table__.columns}
 
 
-Base = declarative_base(cls=CommonBase)
+""" 使用样例
+@blueprint.route('/<int:app_id>', methods=['PUT'])
+@require_permission('publish_app_edit')
+def put(app_id):
+    form, error = JsonParser(*args.values()).parse()
+    if error is None:
+        exists_record = App.query.filter_by(identify=form.identify).first()
+        if exists_record and exists_record.id != app_id:
+            return json_response(message='应用标识不能重复！')
+        app = App.query.get_or_404(app_id)
+        app.update(**form)
+        app.save()
+        return json_response(app)
+    return json_response(message=error)
+
+"""

@@ -3,7 +3,7 @@ __author__ = "leimu"
 __date__ = "2018-09-21"
 
 from datetime import datetime
-from .base import Base, db
+from base import Base, db
 from sqlalchemy import Integer, Column, String, TEXT, TIMESTAMP
 
 

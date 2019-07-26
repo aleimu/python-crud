@@ -3,13 +3,12 @@ __author__ = "leimu"
 __date__ = "2018-09-21"
 
 from datetime import datetime
-# from .base import Base, db
-from app import db
+from base import Base, db
 from sqlalchemy import Integer, Column, String, TEXT, TIMESTAMP
 from werkzeug.security import generate_password_hash, check_password_hash
 
 
-class User(db.Model):
+class User(db.Model, Base):
     __tablename__ = 'User'
 
     id = Column(Integer, primary_key=True, autoincrement=True)
