@@ -5,11 +5,11 @@ __version__ = '1.0.0'
 __doc__ = "装饰器"
 
 from flask import g
-from tools import json_response, js
 from flask import json, jsonify, make_response, request, abort
 from functools import wraps
-from constant import PARAM_ERR
 
+from .constant import PARAM_ERR
+from .common import json_response, js
 
 
 def validate_params(required=None):

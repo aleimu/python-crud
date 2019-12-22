@@ -18,16 +18,16 @@ REDIS_PORT = 6379
 REDIS_PWD = ''
 
 # 数据库配置
-SQLALCHEMY_DATABASE_URI = 'mysql://name:pwd@127.0.0.1:3306/test?charset=utf8'
-SQLALCHEMY_DATABASE_URI2 = 'mysql://name:pwd@127.0.0.1:3307/test?charset=utf8'
+READ_DB_NAME = 'READ_DB_NAME'
+WRITE_DB_NAME = 'WRITE_DB_NAME'
 DATABASE_QUERY_TIMEOUT = 0.5
 SQLALCHEMY_RECORD_QUERIES = True
 SQLALCHEMY_ECHO = False
 SQLALCHEMY_TRACK_MODIFICATIONS = True
 
 SQLALCHEMY_BINDS = {
-    'db1': SQLALCHEMY_DATABASE_URI,
-    'db2': SQLALCHEMY_DATABASE_URI2
+    READ_DB_NAME: 'mysql://name:pwd@127.0.0.1:3306/%s?charset=utf8' % READ_DB_NAME,
+    WRITE_DB_NAME: 'mysql://name:pwd@127.0.0.1:3306/%s?charset=utf8' % WRITE_DB_NAME
 }
 
 # 异步任务推给Work的Celery配置:

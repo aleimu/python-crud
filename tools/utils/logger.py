@@ -5,7 +5,9 @@ __doc__ = "带有上下文的log实现"
 import os
 import logging
 from logging.handlers import TimedRotatingFileHandler
-from .config import LOG_NAME, LOG_LEVEL
+
+LOG_NAME = "python_curl.log"
+LOG_LEVEL = "INFO"
 
 log_path = os.path.realpath(os.getcwd()) + '/logs/'  # 文件路径
 
@@ -21,6 +23,7 @@ file_format = logging.Formatter(log_format)
 # init_logger.addHandler(tr_handler)
 # 控制台日志 --本地调试时打开
 import sys
+
 h_console = logging.StreamHandler(sys.stdout)
 h_console.setFormatter(file_format)
 h_console.setLevel(logging.DEBUG)

@@ -1,8 +1,18 @@
 # -*- coding:utf-8 -*-
-__author__ = "leimu"
-__date__ = "2018-09-21"
+__doc__ = "基础model+自定义加密类型EncryptedType"
 
-from app import db
+import binascii
+from Crypto.Cipher import AES
+from datetime import datetime, date
+from sqlalchemy import Column, ForeignKey, Index, String, TIMESTAMP, SmallInteger, Integer, TIMESTAMP, TEXT, Float, \
+    Date, DateTime, TypeDecorator, DECIMAL
+from sqlalchemy.dialects.mysql import TINYINT
+from sqlalchemy.orm import relationship, backref
+from sqlalchemy.sql import exists, and_
+from sqlalchemy.exc import SQLAlchemyError
+from tools.utils import db, OK, SERVER_ERR, NO_DATA, DB_ERROR
+
+key = "The encryption key."
 
 
 def db_session_commit():
@@ -13,15 +23,41 @@ def db_session_commit():
         raise
 
 
-class Base(object):
-    __slots__ = ()
+class EncryptedType(TypeDecorator):  # 自定义的加解密后的字段类型
+    impl = String
 
-    def get_dict(self):
-        dict = {}
-        dict.update(self.__dict__)
-        if "_sa_instance_state" in dict:
-            del dict['_sa_instance_state']
-        return dict
+    def process_bind_param(self, value, dialect):
+        return aes_encrypt(value)
+
+    def process_result_value(self, value, dialect):
+        return aes_decrypt(value)
+
+
+def aes_encrypt(data):
+    cipher = AES.new(key)
+    data = data + (" " * (16 - (len(data) % 16)))
+    return binascii.hexlify(cipher.encrypt(data))
+
+
+def aes_decrypt(data):
+    cipher = AES.new(key)
+    return cipher.decrypt(binascii.unhexlify(data)).rstrip()
+
+
+"""
+Base = declarative_base()
+
+class User(Base):
+    __tablename__ = 'user_aes'
+
+    id = Column(Integer, primary_key=True)
+    value = Column("value", EncryptedType(40), nullable=False)
+"""
+
+
+class Base(db.Model):
+    __abstract__ = True  # SQLAlchemy中的类继承必须设置 https://segmentfault.com/a/1190000018005342
+    __slots__ = ()
 
     @classmethod
     def get_first(self, **kwargs):
@@ -33,22 +69,28 @@ class Base(object):
         obj = self.query.filter_by(**kwargs).all()
         return obj
 
-    def __init__(self, **kwargs):
-        pass
-
+    @classmethod
     def save(self):
         db.session.add(self)
         db_session_commit()
         return self
 
+    @classmethod
     def delete(self, commit=True):
         db.session.delete(self)
         if commit:
             db_session_commit()
 
+    @classmethod
     def add(self):
         db.session.add(self)
 
+    @classmethod
+    def sub_query(cls, **kwargs):
+        sub_q = cls.query.filter_by(**kwargs).subquery()
+        return sub_q
+
+    @classmethod
     def update(self, **kwargs):
         required_commit = False
         for k, v in kwargs.items():
@@ -69,6 +111,7 @@ class Base(object):
             record = self(**kwargs).save()
         return record
 
+    @classmethod
     def to_json(self, remove=None, choose=None):
         """
         json序列化
@@ -85,20 +128,12 @@ class Base(object):
         else:
             return {i.name: getattr(self, i.name) for i in self.__table__.columns}
 
+    @classmethod
+    def to_dict(self):
+        dict = {}
+        dict.update(self.__dict__)
+        if "_sa_instance_state" in dict:
+            del dict['_sa_instance_state']
 
-""" 使用样例
-@blueprint.route('/<int:app_id>', methods=['PUT'])
-@require_permission('publish_app_edit')
-def put(app_id):
-    form, error = JsonParser(*args.values()).parse()
-    if error is None:
-        exists_record = App.query.filter_by(identify=form.identify).first()
-        if exists_record and exists_record.id != app_id:
-            return json_response(message='应用标识不能重复！')
-        app = App.query.get_or_404(app_id)
-        app.update(**form)
-        app.save()
-        return json_response(app)
-    return json_response(message=error)
+        return dict
 
-"""

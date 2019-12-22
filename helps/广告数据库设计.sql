@@ -54,7 +54,7 @@ CREATE TABLE `ad_image` (
 DROP TABLE IF EXISTS `ad_group`;
 CREATE TABLE `ad_group` (
     `id` int(11) NOT NULL AUTO_INCREMENT,
-    `group` varchar(64) NOT NULL COMMENT '组名',
+    `name` varchar(64) NOT NULL COMMENT '组名',
     `note` varchar(32) DEFAULT NULL,
     `create_time` timestamp NULL DEFAULT CURRENT_TIMESTAMP NOT NULL COMMENT '创建时间',
     `update_time` timestamp NULL DEFAULT NULL,

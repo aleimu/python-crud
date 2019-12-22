@@ -15,7 +15,5 @@ def register_blueprint():
 register_blueprint()
 
 if __name__ == "__main__":
-    # print(vars(app))
-    from app import scheduler
-
+    # from app import scheduler
     app.run(host='0.0.0.0', port=3001, threaded=True, debug=True)

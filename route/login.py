@@ -4,10 +4,11 @@ __date__ = "2019-01-01"
 __version__ = '1.0.0'
 
 from flask import Blueprint, request
-from tools import OK, LOGIN_FAIL, PARAM_ERR, validate_params, js, first2dict
+
+from tools.model import User
+from tools.utils import OK, LOGIN_FAIL, PARAM_ERR, validate_params, js, first2dict
 from cache import rds, make_token, rds_hmset, rds_token
 from app import db
-from model import User
 
 auth = Blueprint('auth', __name__, url_prefix='/v1/user')
 

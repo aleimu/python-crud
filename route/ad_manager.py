@@ -9,8 +9,10 @@ import uuid
 import traceback
 from flask import send_from_directory, Blueprint, abort, json
 from app import db, request, UPLOAD_FOLDER
-from tools import constant as cs, validate_params, js, get_arg, all2dict, first2dict, values2db
-from model import ad_style, ad_ctr, ad_group, ad_image
+
+from tools.utils import validate_params, js, get_arg, all2dict, values2db
+from tools.utils import constant as cs
+from tools.model import AdStyle, AdCtr, AdGroup, AdImage, AdStyle2, AdCtr2, AdGroup2, AdImage2
 from cache import rds
 
 advert = Blueprint('advert', __name__, url_prefix='/v1/advert')
@@ -23,8 +25,8 @@ group_dict = {'1': 'a_advert', '2': 'b_advert', '3': 'c_advert', '4': "d_advert"
 
 
 def allowed_file(filename):
-    tail = '.' in filename and filename.rsplit('.', 1)[1]
-    if tail.lower() in cs.ALLOWED_EXTENSIONS:
+    tail = filename and '.' in filename and filename.rsplit('.', 1)[1]
+    if tail and tail.lower() in cs.ALLOWED_EXTENSIONS:
         return tail
     else:
         return False
@@ -89,17 +91,17 @@ def crud_group():
 
     if request.method == "GET":
         if gid:
-            # group_obj = ad_group.query.filter_by(id=id).first()
-            group_obj = ad_group.query.filter(id=gid).first()
+            # group_obj = AdGroup.query.filter_by(id=id).first()
+            group_obj = AdGroup.query.filter(id=gid).first()
         else:
-            group_obj = ad_group.query.filter().all()
+            group_obj = AdGroup.query.filter().all()
         return js(cs.OK, None, all2dict(group_obj))
     if request.method == "PUT":
         if gid:
-            group_obj = ad_group.query.filter_by(id=gid).first()
+            group_obj = AdGroup2.query.filter_by(id=gid).first()
             if not group_obj:
                 return js(cs.VALUE_ERROR, "分组不存在")
-            group_check = ad_group.query.filter_by(group=gname).first()
+            group_check = AdGroup2.query.filter_by(group=gname).first()
             if group_check:
                 return js(cs.VALUE_ERROR, "组名已存在")
             group_obj.group = gname
@@ -109,16 +111,16 @@ def crud_group():
             return js(cs.VALUE_ERROR)
     if request.method == "POST":
         if gname:
-            group_obj = ad_group.query.filter_by(group=gname).first()
+            group_obj = AdGroup2.query.filter_by(group=gname).first()
             if group_obj:
                 return js(cs.VALUE_ERROR, "组名已存在")
-            group_obj = values2db(req_arg, ad_group(), ("group", "note"))
+            group_obj = values2db(req_arg, AdGroup2(), ("group", "note"))
             db.session.add(group_obj)
         else:
             return js(cs.VALUE_ERROR)
     if request.method == "DELETE":
         if gid:
-            group_obj = ad_group.query.filter_by(id=gid).first()
+            group_obj = AdGroup2.query.filter_by(id=gid).first()
             db.session.delete(group_obj)
         else:
             return js(cs.VALUE_ERROR)
@@ -139,25 +141,25 @@ def crud_image():
 
     if request.method == "GET":
         if pid:
-            img_obj = ad_image.query.filter_by(id=pid).first()
+            img_obj = AdImage.query.filter_by(id=pid).first()
         else:
-            img_obj = ad_image.query.filter().all()
+            img_obj = AdImage.query.filter().all()
         return js(cs.OK, None, all2dict(img_obj))
     elif request.method == "PUT":
         if pid:
-            group_check = ad_group.query.filter_by(id=group_id).first()
+            group_check = AdGroup2.query.filter_by(id=group_id).first()
             if not group_check:
                 return js(cs.VALUE_ERROR, "组ID不存在")
             if ',' not in pid:
-                img_obj = ad_image.query.filter_by(id=pid).first()
+                img_obj = AdImage2.query.filter_by(id=pid).first()
                 if not img_obj:
                     return js(cs.VALUE_ERROR, "图片ID不存在")
-                img_obj = values2db(req_arg, ad_image(), ("image_name", "image_url", "ad_url", "note", "group_id"))
+                img_obj = values2db(req_arg, AdImage2(), ("image_name", "image_url", "ad_url", "note", "group_id"))
                 db.session.add(img_obj)
             else:
                 pids = pid.split(',')  # 批量分组
                 for item in pids:
-                    img_obj = ad_image.query.filter_by(id=item).first()
+                    img_obj = AdImage2.query.filter_by(id=item).first()
                     if not img_obj:
                         return js(cs.VALUE_ERROR, "图片ID:%s不存在" % item)
                     img_obj.group_id = group_id
@@ -165,21 +167,21 @@ def crud_image():
         else:
             return js(cs.VALUE_ERROR)
     elif request.method == "POST":
-        group_check = ad_group.query.filter_by(id=group_id).first()
+        group_check = AdGroup.query.filter_by(id=group_id).first()
         if not group_check:
             return js(cs.VALUE_ERROR, "组ID不存在")
-        img_obj = values2db(req_arg, ad_image(), ("image_name", "image_url", "ad_url", "note", "group_id"))
+        img_obj = values2db(req_arg, AdImage2(), ("image_name", "image_url", "ad_url", "note", "group_id"))
         db.session.add(img_obj)
     elif request.method == "DELETE":
         if pid:
             if ',' not in pid:
-                img_obj = ad_image.query.filter_by(id=pid).first()
+                img_obj = AdImage2.query.filter_by(id=pid).first()
                 if img_obj:
                     db.session.delete(img_obj)
             else:
                 pids = pid.split(',')  # 批量删除
                 for item in pids:
-                    img_obj = ad_image.query.filter_by(id=item).first()
+                    img_obj = AdImage2.query.filter_by(id=item).first()
                     if img_obj:
                         db.session.delete(img_obj)
         else:
@@ -199,6 +201,7 @@ def get_ad_style():
         return js(cs.VALUE_ERROR, 'ad_key error', None)
     try:
         ad_dict = rds.get(rds_key)  # 尝试获取缓存
+        print("ad_dict:", ad_dict)
         if ad_dict:
             ad_dict = json.loads(ad_dict)
             for item in ad_dict:
@@ -228,13 +231,13 @@ def set_ad_style():
             "position", "system", "note", "up_time", "down_time")
     if request.method == "POST":
         try:
-            group_check = ad_group.query.filter_by(id=group_id).first()
+            group_check = AdGroup.query.filter_by(id=group_id).first()
             if not group_check:
                 return js(cs.VALUE_ERROR, "组ID不存在")
-            img_obj = ad_image.query.filter_by(id=image_id).first()
+            img_obj = AdImage.query.filter_by(id=image_id).first()
             if not img_obj:
                 return js(cs.VALUE_ERROR, "图片ID不存在")
-            img_obj = values2db(req_arg, ad_style(), need)
+            img_obj = values2db(req_arg, AdStyle2(), need)
             code = str(uuid.uuid1())
             img_obj.code = code
             db.session.add(img_obj)
@@ -246,13 +249,13 @@ def set_ad_style():
             ad_id = int(req_arg.get("id"))
             if not ad_id:
                 return js(cs.VALUE_ERROR)
-            group_check = ad_group.query.filter_by(id=group_id).first()
+            group_check = AdGroup.query.filter_by(id=group_id).first()
             if not group_check:
                 return js(cs.VALUE_ERROR, "组ID不存在")
-            img_obj = ad_image.query.filter_by(id=image_id).first()
+            img_obj = AdImage.query.filter_by(id=image_id).first()
             if not img_obj:
                 return js(cs.VALUE_ERROR, "图片ID不存在")
-            style_obj = ad_style.query.filter_by(id=ad_id).first()
+            style_obj = AdStyle2.query.filter_by(id=ad_id).first()
             code = style_obj.code
             img_obj = values2db(req_arg, style_obj, need)
             db.session.add(img_obj)
@@ -264,7 +267,7 @@ def set_ad_style():
             ad_id = int(req_arg.get("id"))
             if not ad_id:
                 return js(cs.VALUE_ERROR)
-            style_obj = ad_style.query.filter_by(id=ad_id).first()
+            style_obj = AdStyle2.query.filter_by(id=ad_id).first()
             code = style_obj.code
             db.session.delete(style_obj)
         except Exception as e:
@@ -297,21 +300,21 @@ def ad_list():
         page_index = 1
         page_size = 20
     try:
-        ad_obj = db.session.query(ad_style.id, ad_style.code, ad_style.mode, ad_style.frequency, ad_style.position,
-                                  ad_style.system, ad_image.image_name, ad_image.image_url, ad_image.ad_url,
-                                  ad_image.group_id, ad_style.up_time, ad_style.down_time, ad_style.status,
-                                  ad_style.node) \
-            .join(ad_image, ad_image.id == ad_style.image_id).filter()
+        ad_obj = db.session.query(AdStyle.id, AdStyle.code, AdStyle.mode, AdStyle.frequency, AdStyle.position,
+                                  AdStyle.system, AdImage.image_name, AdImage.image_url, AdStyle.ad_url,
+                                  AdImage.group_id, AdStyle.up_time, AdStyle.down_time, AdStyle.status,
+                                  AdStyle.note) \
+            .join(AdImage, AdImage.id == AdStyle.image_id).filter()
         if status:
-            ad_obj = ad_obj.filter(ad_style.status == status)
+            ad_obj = ad_obj.filter(AdStyle.status == status)
         if system:
-            ad_obj = ad_obj.filter(ad_style.system == system)
+            ad_obj = ad_obj.filter(AdStyle.system == system)
         if position:
-            ad_obj = ad_obj.filter(ad_style.position == position)
+            ad_obj = ad_obj.filter(AdStyle.position == position)
         if image_id:
-            ad_obj = ad_obj.filter(ad_style.image_id == image_id)
+            ad_obj = ad_obj.filter(AdStyle.image_id == image_id)
         if group_id:
-            ad_obj = ad_obj.filter(ad_style.image_id == group_id)
+            ad_obj = ad_obj.filter(AdStyle.image_id == group_id)
         ad_obj = ad_obj.paginate(int(page_index), int(page_size), False)
         count = ad_obj.total
         data = all2dict(ad_obj.items)
@@ -335,19 +338,19 @@ def statistic():
         page_index = 1
         page_size = 20
     try:
-        ad_obj = db.session.query(ad_ctr.code, ad_ctr.show_count, ad_ctr.click_count, ad_ctr.crt,
-                                  ad_ctr.show_day, ad_ctr.click_day, ad_ctr.create_date, ad_ctr.create_time).filter()
+        ad_obj = db.session.query(AdCtr.code, AdCtr.show_count, AdCtr.click_count, AdCtr.crt,
+                                  AdCtr.show_day, AdCtr.click_day, AdCtr.create_date, AdCtr.create_time).filter()
         if code:
-            ad_obj = ad_obj.filter(ad_ctr.code.in_(code.split(',')))
+            ad_obj = ad_obj.filter(AdCtr.code.in_(code.split(',')))
         if sort:
-            ad_obj = ad_obj.order_by(ad_ctr.create_date.desc())
+            ad_obj = ad_obj.order_by(AdCtr.create_date.desc())
         else:
-            ad_obj = ad_obj.order_by(ad_ctr.create_date)
+            ad_obj = ad_obj.order_by(AdCtr.create_date)
         if not start_date:
             start_date = time.strftime('%Y-%m-%d %H:%M:%S')
         if not end_date:
             end_date = time.strftime('%Y-%m-%d %H:%M:%S')
-        ad_obj = ad_obj.filter(ad_ctr.create_date <= end_date, ad_ctr.create_date >= start_date).paginate(
+        ad_obj = ad_obj.filter(AdCtr.create_date <= end_date, AdCtr.create_date >= start_date).paginate(
             int(page_index), int(page_size), False)
         count = ad_obj.total
         data = all2dict(ad_obj.items)
@@ -415,10 +418,10 @@ def merge_db(code):
     else:
         crt = 0
     try:
-        ad_ctr_obj = db.session.query(ad_ctr).filter(ad_ctr.code == code, ad_ctr.create_date == now_date).first()
+        ad_ctr_obj = db.session.query(AdCtr2).filter(AdCtr2.code == code, AdCtr2.create_date == now_date).first()
         if not ad_ctr_obj:
-            new_ctr = ad_ctr(code=code, create_date=now_date, crt=crt, show_count=scout, click_count=ccout,
-                             show_day=json.dumps(daily_show), click_day=json.dumps(daily_click))
+            new_ctr = AdCtr2(code=code, create_date=now_date, crt=crt, show_count=scout, click_count=ccout,
+                            show_day=json.dumps(daily_show), click_day=json.dumps(daily_click))
             db.session.add(new_ctr)
         else:
             ad_ctr_obj.show_count = scout
@@ -437,17 +440,16 @@ def refresh(system=None, status=1):
     ad_lists = []
     try:
         now_time = time.strftime('%Y-%m-%d %H:%M:%S')
-        ad_obj = db.session.query(ad_style.id, ad_style.code, ad_style.mode, ad_style.frequency, ad_style.position,
-                                  ad_style.system, ad_image.image_name, ad_image.image_url, ad_image.ad_url,
-                                  ad_style.up_time, ad_style.down_time) \
-            .join(ad_image, ad_image.id == ad_style.image_id) \
-            .filter(ad_style.status == status)
+        ad_obj = db.session.query(AdStyle.id, AdStyle.code, AdStyle.mode, AdStyle.frequency, AdStyle.position,
+                                  AdStyle.system, AdImage.image_name, AdImage.image_url, AdStyle.ad_url,
+                                  AdStyle.up_time, AdStyle.down_time) \
+            .join(AdImage, AdImage.id == AdStyle.image_id) \
+            .filter(AdStyle.status == status)
         if system:
-            ad_obj = ad_obj.filter(ad_style.system == system)
+            ad_obj = ad_obj.filter(AdStyle.system == system)
         if now_time:
-            ad_obj = ad_obj.filter(ad_style.up_time <= now_time, ad_style.down_time >= now_time)
+            ad_obj = ad_obj.filter(AdStyle.up_time <= now_time, AdStyle.down_time >= now_time)
         ad_obj = ad_obj.all()
-        db.session.commit()
         if not ad_obj:
             abort(406, "not find:%s" % system)
         ad_lists = all2dict(ad_obj)
@@ -496,20 +498,17 @@ def clean_expired(code):
 
 #########################################################内部接口#######################################################
 
-@advert.route('/hour')
+
 def cron_job_hour():
     """按小数刷新redis数据到按天统计中"""
     print("-----------cron_job_hour---------------")
     check_expired(False)
-    return js(cs.OK)
 
 
-@advert.route('/day')
 def cron_job_day():
     """按天刷新redis中数据到db中"""
     print("-----------cron_job_day---------------")
     check_expired(True)
-    return js(cs.OK)
 
 
 @advert.route('/fresh')

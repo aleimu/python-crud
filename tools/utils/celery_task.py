@@ -5,15 +5,15 @@ __doc__ = """使用celery和redis做异步服务,如向手机发送短信提醒,
 
 import celery
 import traceback
-from app.logger import logger
-from app.config import SMS_FLAG
+from tools.utils.logger import logger
+
 
 celery = celery.Celery()
 celery.config_from_object('cache/celery_config')
 # celery define
 sms_queue = 'sub_push'
 sms_template = 'push_srv.common_use'  # 使用短信通用模板,短信全部内容由自己定
-
+SMS_FLAG = True
 
 # 发送短信
 def send_celery(telephones, msg, celery_route=sms_template, queue=sms_queue):

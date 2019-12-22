@@ -11,12 +11,13 @@ from flask_sqlalchemy import SQLAlchemy, get_debug_queries
 import flask_excel as excel
 # from config import *
 import config
-from logger import logger
+from tools.utils.logger import logger
 from cache import rds, rds_token
-from tools import APIEncoder, js, SERVER_ERR, DB_ERR, AUTH_FAIL, PARAM_ERR, OK, NOT_AUTH_API
+from tools.utils import APIEncoder, js, SERVER_ERR, DB_ERR, AUTH_FAIL, PARAM_ERR, NOT_AUTH_API
+from tools.utils import db
 
 
-def NewAppDb(conf):
+def NewAppDB(conf):
     app = Flask(__name__)
 
     # app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
@@ -26,33 +27,44 @@ def NewAppDb(conf):
     # app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = SQLALCHEMY_TRACK_MODIFICATIONS
     # app.config['DATABASE_QUERY_TIMEOUT'] = DATABASE_QUERY_TIMEOUT  # 配置查询超时时间
     # app.config['SQLALCHEMY_RECORD_QUERIES'] = SQLALCHEMY_RECORD_QUERIES  # 保存查询记录
-
     app.config.from_object(conf)
+    app.config['SQLALCHEMY_BINDS'] = config.SQLALCHEMY_BINDS
+    # 需要配合app.config['SQLALCHEMY_BINDS'],因为部分model中有参数应用 代替 db = SQLAlchemy(app)
+    db.set(SQLAlchemy(app), read_db=config.READ_DB_NAME, write_db=conf.WRITE_DB_NAME)
     app.json_encoder = APIEncoder  # 直接修改json对时间/sqlalchemy obj的解析方式
+    excel.init_excel(app)
+    return app
 
-    db = SQLAlchemy(app)
-    return app, db
+
+app = NewAppDB(config)
 
 
-app, db = NewAppDb(config)
-excel.init_excel(app)
+def with_app_context(func):
+    """上下文"""
+
+    @wraps(func)
+    def wrapper(*args, **kwargs):
+        with app.app_context():
+            return func(*args, **kwargs)
+
+    return wrapper
 
 
 @app.before_request
 def before_request():
     logger.info('url: %s ,data: %s' % (request.path, request.values.to_dict()), extra={"type": request.method})
-    if request.path not in NOT_AUTH_API:
-        token = request.values.get('token', None)
-        if not token:
-            if request.json:
-                token = request.json.get('token', None)
-        if token:
-            user_obj = rds.hgetall(rds_token(token))
-            if not user_obj:
-                return js(AUTH_FAIL)
-            rds.expire(rds_token(token), config.LOGIN_EXPIRE)
-        else:
-            return js(AUTH_FAIL)
+    # if request.path not in NOT_AUTH_API:
+    #     token = request.values.get('token', None)
+    #     if not token:
+    #         if request.json:
+    #             token = request.json.get('token', None)
+    #     if token:
+    #         user_obj = rds.hgetall(rds_token(token))
+    #         if not user_obj:
+    #             return js(AUTH_FAIL)
+    #         rds.expire(rds_token(token), config.LOGIN_EXPIRE)
+    #     else:
+    #         return js(AUTH_FAIL)
 
 
 @app.after_request
@@ -106,14 +118,3 @@ def db_err(e):
 def unhandled_exception(e):
     logger.error(traceback.format_exc(), extra={"key": e.__class__})
     return js(SERVER_ERR, "SERVER_ERR")
-
-
-def with_app_context(func):
-    """上下文"""
-
-    @wraps(func)
-    def wrapper(*args, **kwargs):
-        with app.app_context():
-            return func(*args, **kwargs)
-
-    return wrapper

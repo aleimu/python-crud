@@ -86,11 +86,11 @@ class APIEncoder(json.JSONEncoder):
             return self.default({i.name: getattr(obj, i.name) for i in obj.__table__.columns})
         elif isinstance(obj, dict):
             # 只可以解析这样的sql查询,如下:
-            # sql_obj = Shipper.query.filter(Shipper.com_name == com_name).first()
+            # sql_obj = User.query.filter(User.com_name == com_name).first()
             # return jsonify({'code': 1800, 'data': sql_obj, 'errmsg': None})
 
-            # 不可以解析 sql_obj2 = db.session.query(Shipper.com_name, Shipper.legalp_name, Shipper.contact_name).
-            # filter(Shipper.com_name == com_name).first()
+            # 不可以解析 sql_obj2 = db.session.query(User.com_name, User.legalp_name, User.contact_name).
+            # filter(User.com_name == com_name).first()
             # return jsonify({'code': 1800, 'data': sql_obj2, 'errmsg': None})
             # 应该先转换成dict如 return jsonify({'code': 1800, 'data': first2dict(sql_obj2), 'errmsg': None})
             # 或者 return jsonify({'code': 1800, 'data': all2dict(sql_obj2), 'errmsg': None})
@@ -110,7 +110,7 @@ class APIEncoder(json.JSONEncoder):
 def all2dict(db_obj):
     """
     db_obj = db.session.query.filter(XXXXX).all() 的查询结果转成dict样式,注意结果包含在 [] 内,注意与前端的解析
-    db_obj = Shipper.query.filter(XXXXX).order_by(Shipper.create_time.desc()).paginate(page, per_page, False).items
+    db_obj = User.query.filter(XXXXX).order_by(User.create_time.desc()).paginate(page, per_page, False).items
     :param db_obj: db.session.query.filter(XXXXX).all() 的查询结果
     :return:list[dict,dict,...]
     """
@@ -128,7 +128,7 @@ def all2dict(db_obj):
 def first2dict(db_obj):
     """
     db_obj = db.session.filter(XXXXX).first() 的查询结果转成dict样式
-    db_obj = Shipper.query.filter(XXXXX).first()
+    db_obj = User.query.filter(XXXXX).first()
     :param db_obj: db.session.filter(XXXXX).first() 的查询结果
     :return:dict
     """
