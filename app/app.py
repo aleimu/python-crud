@@ -53,18 +53,18 @@ def with_app_context(func):
 @app.before_request
 def before_request():
     logger.info('url: %s ,data: %s' % (request.path, request.values.to_dict()), extra={"type": request.method})
-    # if request.path not in NOT_AUTH_API:
-    #     token = request.values.get('token', None)
-    #     if not token:
-    #         if request.json:
-    #             token = request.json.get('token', None)
-    #     if token:
-    #         user_obj = rds.hgetall(rds_token(token))
-    #         if not user_obj:
-    #             return js(AUTH_FAIL)
-    #         rds.expire(rds_token(token), config.LOGIN_EXPIRE)
-    #     else:
-    #         return js(AUTH_FAIL)
+    if request.path not in NOT_AUTH_API:
+        token = request.values.get('token', None)
+        if not token:
+            if request.json:
+                token = request.json.get('token', None)
+        if token:
+            user_obj = rds.hgetall(rds_token(token))
+            if not user_obj:
+                return js(AUTH_FAIL)
+            rds.expire(rds_token(token), config.LOGIN_EXPIRE)
+        else:
+            return js(AUTH_FAIL)
 
 
 @app.after_request
