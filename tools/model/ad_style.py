@@ -2,7 +2,7 @@
 __author__ = "leimu"
 __date__ = "2018-09-21"
 
-from base import *
+from .base import *
 from .ad_group import AdGroup, AdGroup2
 from .ad_image import AdImage, AdImage2
 from .user import User, User2
@@ -10,7 +10,7 @@ from .user import User, User2
 
 class AdStyle(Base):  # 广告展示方式与设置
     __tablename__ = 'ad_style'
-    __bind_key__ = db.read_db
+    __bind_key__ = db.get("read_db")
 
     id = Column(Integer, primary_key=True, autoincrement=True)
     code = Column(String(64), nullable=False)  # 广告编号-> redis key
@@ -38,9 +38,9 @@ class AdStyle(Base):  # 广告展示方式与设置
 
 class AdStyle2(Base):  # 广告展示方式与设置
     __tablename__ = 'ad_style'
-    __bind_key__ = db.write_db
+    __bind_key__ = db.get("write_db")
     __table_args__ = {
-        'schema': db.write_db,
+        'schema': db.get("write_db"),
         "extend_existing": True
     }
 

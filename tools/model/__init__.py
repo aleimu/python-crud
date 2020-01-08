@@ -3,7 +3,7 @@ __author__ = "q.p"
 __date__ = "2019-01-01"
 __version__ = '1.0.0'
 
-from tools.utils.database import InitDB
+from tools.utils.database import db
 
 # 通用定义
 OK = 1000

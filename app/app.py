@@ -9,34 +9,32 @@ import sqlalchemy.exc
 from flask import Flask, request
 from flask_sqlalchemy import SQLAlchemy, get_debug_queries
 import flask_excel as excel
-# from config import *
-import config
-from tools.utils.logger import logger
+from .config import *
 from cache import rds, rds_token
+from tools.utils.logger import logger
 from tools.utils import APIEncoder, js, SERVER_ERR, DB_ERR, AUTH_FAIL, PARAM_ERR, NOT_AUTH_API
 from tools.utils import db
 
 
-def NewAppDB(conf):
+def NewAppDB():
     app = Flask(__name__)
 
-    # app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
-    # app.config['SECRET_KEY'] = SECRET_KEY
-    # app.config['SQLALCHEMY_ECHO'] = False
-    # app.config['SQLALCHEMY_DATABASE_URI'] = SQLALCHEMY_DATABASE_URI
-    # app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = SQLALCHEMY_TRACK_MODIFICATIONS
-    # app.config['DATABASE_QUERY_TIMEOUT'] = DATABASE_QUERY_TIMEOUT  # 配置查询超时时间
-    # app.config['SQLALCHEMY_RECORD_QUERIES'] = SQLALCHEMY_RECORD_QUERIES  # 保存查询记录
-    app.config.from_object(conf)
-    app.config['SQLALCHEMY_BINDS'] = config.SQLALCHEMY_BINDS
+    app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
+    app.config['SECRET_KEY'] = SECRET_KEY
+    app.config['SQLALCHEMY_ECHO'] = False
+    app.config['SQLALCHEMY_DATABASE_URI'] = SQLALCHEMY_DATABASE_URI
+    app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = SQLALCHEMY_TRACK_MODIFICATIONS
+    app.config['DATABASE_QUERY_TIMEOUT'] = DATABASE_QUERY_TIMEOUT  # 配置查询超时时间
+    app.config['SQLALCHEMY_RECORD_QUERIES'] = SQLALCHEMY_RECORD_QUERIES  # 保存查询记录
+    app.config['SQLALCHEMY_BINDS'] = SQLALCHEMY_BINDS
     # 需要配合app.config['SQLALCHEMY_BINDS'],因为部分model中有参数应用 代替 db = SQLAlchemy(app)
-    db.set(SQLAlchemy(app), read_db=config.READ_DB_NAME, write_db=conf.WRITE_DB_NAME)
+    db.set(SQLAlchemy(app), read_db=READ_DB_NAME, write_db=WRITE_DB_NAME)
     app.json_encoder = APIEncoder  # 直接修改json对时间/sqlalchemy obj的解析方式
     excel.init_excel(app)
     return app
 
 
-app = NewAppDB(config)
+app = NewAppDB()
 
 
 def with_app_context(func):
@@ -62,7 +60,7 @@ def before_request():
             user_obj = rds.hgetall(rds_token(token))
             if not user_obj:
                 return js(AUTH_FAIL)
-            rds.expire(rds_token(token), config.LOGIN_EXPIRE)
+            rds.expire(rds_token(token), LOGIN_EXPIRE)
         else:
             return js(AUTH_FAIL)
 

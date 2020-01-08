@@ -7,7 +7,7 @@ __doc__ = "通用函数,适配flask特性的一些常用函数,降低重复操�
 import time
 import datetime
 from flask import json, jsonify, request, abort
-from constant import PARAM_ERR, ALLOWED_EXTENSIONS
+from .constant import PARAM_ERR, ALLOWED_EXTENSIONS
 from sqlalchemy.ext.declarative import DeclarativeMeta
 
 
