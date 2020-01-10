@@ -10,7 +10,7 @@ from sqlalchemy.dialects.mysql import TINYINT
 from sqlalchemy.orm import relationship, backref
 from sqlalchemy.sql import exists, and_
 from sqlalchemy.exc import SQLAlchemyError
-from tools.utils import db, OK, SERVER_ERR, NO_DATA, DB_ERROR
+from tools.utils import db, OK, read_db, write_db
 
 key = "The encryption key."
 
@@ -136,4 +136,3 @@ class Base(db.Model):
             del dict['_sa_instance_state']
 
         return dict
-

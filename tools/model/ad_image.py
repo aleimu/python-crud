@@ -8,10 +8,10 @@ from .ad_group import AdGroup, AdGroup2
 
 class AdImage(Base):  # 资源分组中的图片
     __tablename__ = 'ad_image'
-    __bind_key__ = db.get("read_db")
+    __bind_key__ = read_db
 
     id = Column(Integer, primary_key=True, autoincrement=True)
-    group_id = Column(Integer, ForeignKey('{}.ad_group.id'.format(db.read_db)), nullable=False)  # 组名ad_group.id
+    group_id = Column(Integer, ForeignKey('{}.ad_group.id'.format(db.get(read_db))), nullable=False)  # 组名ad_group.id
     image_name = Column(String(100))  # 图片存放链接
     image_url = Column(String(100))  # 图片存放链接
     note = Column(String(10))  # 备注
@@ -22,14 +22,14 @@ class AdImage(Base):  # 资源分组中的图片
 
 class AdImage2(Base):  # 资源分组中的图片
     __tablename__ = 'ad_image'
-    __bind_key__ = db.get("write_db")
+    __bind_key__ = write_db
     __table_args__ = {
-        'schema': db.get("write_db"),
+        'schema': db.get(write_db),
         "extend_existing": True
     }
 
     id = Column(Integer, primary_key=True, autoincrement=True)
-    group_id = Column(Integer, ForeignKey('{}.ad_group.id'.format(db.write_db)), nullable=False)  # 组名ad_group.id
+    group_id = Column(Integer, ForeignKey('{}.ad_group.id'.format(db.get(write_db))), nullable=False)  # 组名ad_group.id
     image_name = Column(String(100))  # 图片存放链接
     image_url = Column(String(100))  # 图片存放链接
     note = Column(String(10))  # 备注

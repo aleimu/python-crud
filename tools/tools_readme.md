@@ -3,11 +3,15 @@
 ## 统一风格约定
 
     1.model的文件名为小写和下划线拼接
-    2.model的class名为驼峰式,读库为class,写库为class2
+    2.model的class名为驼峰式
     3.model.__tablename__为数据库表名,小写和下划线拼接
-    4.尽量不使用relationship和ForeignKey
+    4.model的class中的行字段保持和数据库字段一致,目前有个别表不一致,未改正
+    5.尽量不使用relationship和ForeignKey
+    6.同一个表再多个库中都有,此表的model尽量建立在同一个文件中,区别class名
+    7.model class中尽量使用kv传参,不要使用__init__位置传参,不然容易引起混乱(目前很多表都是位置传参,新表不建议这样再这样做)
 
 ## 将tools安装到系统环境,在多个项目中共用
+-[X] 可以将tools作为单独模块独立出来
 
 模块是天然的单例模式,tools中将model和常用函数打包了,可以安装到系统lib中
 ```shell

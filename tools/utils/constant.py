@@ -3,6 +3,10 @@ __author__ = "qq"
 __date__ = "2019.1.2"
 __doc__ = "通用常数"
 
+# 适配app.config['SQLALCHEMY_BINDS']的参数,用于数据库连接选择,也与tools.utils.database.InstanceDB.set的参数有关
+read_db = "read_db"
+write_db = "write_db"
+
 NOT_AUTH_API = ('/', '/v1/user/login', '/v1/user/logout', '/v1/user/register', '/v1/advert/show', '/v1/advert/click',
                 '/v1/advert/', '/v1/advert/upload')
 ALLOWED_EXTENSIONS = {'txt', 'pdf', 'png', 'jpg', 'jpeg', 'gif', 'bmp'}

@@ -8,7 +8,7 @@ from .base import *
 
 class AdGroup(Base):
     __tablename__ = 'ad_group'
-    __bind_key__ = db.get("read_db")
+    __bind_key__ = read_db
 
     id = db.Column(Integer, primary_key=True, autoincrement=True)
     name = db.Column(String(10), nullable=False)  # 组名  1:系统A, 2:系统B, 3:系统C ...
@@ -19,9 +19,9 @@ class AdGroup(Base):
 
 class AdGroup2(Base):
     __tablename__ = 'ad_group'
-    __bind_key__ = db.get("write_db")
+    __bind_key__ = write_db
     __table_args__ = {
-        'schema': db.get("write_db"),
+        'schema': db.get(write_db),
         "extend_existing": True
     }
 

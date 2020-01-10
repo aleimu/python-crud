@@ -1,8 +1,14 @@
 # -*- coding:utf-8 -*-
 __author__ = "q.p"
-__doc__ = "带有上下文的log实现"
+__doc__ = "带有上下文的log实现,此方式不支持多进程的TimedRotatingFileHandler,容易相互覆盖导致日志丢失 参考: https://juejin.im/post/5e1303026fb9a0482c4ea59f#heading-9"
 
-import fcntl
+# 要是涉及到window上的话,可以用portalocker替代
+try:
+    import fcntl  # 文件锁
+except Exception as e:
+    print(e)
+    import portalocker as fcntl
+
 import time
 import os
 import sys
@@ -68,7 +74,7 @@ init_logger.setLevel(LOG_LEVEL)
 # 日志格式
 log_format = '%(asctime)s|%(process)d|%(levelname)s|%(filename)s|%(funcName)s|%(lineno)d|%(keyword)s|%(user)s|%(action)s|%(obj)s|%(obj_id)s|%(result)s|%(type)s|%(message)s'
 file_format = logging.Formatter(log_format)
-# 日志轮转
+# 日志按天轮转
 tr_handler = MultiCompatibleTimedRotatingFileHandler(LOG_PATH + LOG_NAME, when='midnight', encoding='utf-8')
 tr_handler.setFormatter(file_format)
 tr_handler.suffix = "_%Y%m%d.log"
@@ -78,6 +84,19 @@ h_console = logging.StreamHandler(sys.stdout)
 h_console.setFormatter(file_format)
 h_console.setLevel(logging.DEBUG)
 init_logger.addHandler(h_console)
+
+""" 按大小轮转
+try:
+    from cloghandler import ConcurrentRotatingFileHandler as RFHandler
+except ImportError:
+    print('ConcurrentRotatingFileHandler package not installed, Using builtin log handler')
+    from logging.handlers import RotatingFileHandler as RFHandler
+logger = logging.getLogger()
+rotateHandler = RFHandler('./logs/my_logfile.log', "a", 1024 * 1024, 5)
+logger.addHandler(rotateHandler)
+logger.setLevel(logging.DEBUG)
+logger.info('Thisisainfomessage.')
+"""
 
 # 设定默认值
 extra_dict = {"user": "", "type": "", "keyword": "", "action": "", "obj": "", "obj_id": "", "result": ""}

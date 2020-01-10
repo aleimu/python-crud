@@ -10,13 +10,13 @@ from .user import User, User2
 
 class AdStyle(Base):  # 广告展示方式与设置
     __tablename__ = 'ad_style'
-    __bind_key__ = db.get("read_db")
+    __bind_key__ = read_db
 
     id = Column(Integer, primary_key=True, autoincrement=True)
     code = Column(String(64), nullable=False)  # 广告编号-> redis key
-    group_id = Column(Integer, ForeignKey('{}.ad_group.id'.format(db.read_db)), index=True)  # 分组id :AdGroup.id
-    image_id = Column(Integer, ForeignKey('{}.ad_image.id'.format(db.read_db)))  # 图片id ->AdImage.id
-    oper_uid = Column(Integer, ForeignKey('{}.user.id'.format(db.read_db)))  # 操作人id;user.id
+    group_id = Column(Integer, ForeignKey('{}.ad_group.id'.format(db.get(read_db))), index=True)  # 分组id :AdGroup.id
+    image_id = Column(Integer, ForeignKey('{}.ad_image.id'.format(db.get(read_db))))  # 图片id ->AdImage.id
+    oper_uid = Column(Integer, ForeignKey('{}.user.id'.format(db.get(read_db))))  # 操作人id;user.id
     oper_uname = Column(String(11))  # 操作人username
     ad_url = Column(String(256))  # 广告链接
     status = Column(Integer, default=2)  # 状态(0：已下架 1：已上架 2:暂存未发布 3:已删除弃用)  -> 同一个位置只能上架一个产品和图片展示方式有关
@@ -38,17 +38,17 @@ class AdStyle(Base):  # 广告展示方式与设置
 
 class AdStyle2(Base):  # 广告展示方式与设置
     __tablename__ = 'ad_style'
-    __bind_key__ = db.get("write_db")
+    __bind_key__ = write_db
     __table_args__ = {
-        'schema': db.get("write_db"),
+        'schema': db.get(write_db),
         "extend_existing": True
     }
 
     id = Column(Integer, primary_key=True, autoincrement=True)
     code = Column(String(64), nullable=False)  # 广告编号-> redis key
-    group_id = Column(Integer, ForeignKey('{}.ad_group.id'.format(db.write_db)), index=True)  # 分组id :AdGroup.id
-    image_id = Column(Integer, ForeignKey('{}.ad_image.id'.format(db.write_db)))  # 图片id ->AdImage.id
-    oper_uid = Column(Integer, ForeignKey('{}.user.id'.format(db.write_db)))  # 操作人id;user.id
+    group_id = Column(Integer, ForeignKey('{}.ad_group.id'.format(db.get(write_db))), index=True)  # 分组id :AdGroup.id
+    image_id = Column(Integer, ForeignKey('{}.ad_image.id'.format(db.get(write_db))))  # 图片id ->AdImage.id
+    oper_uid = Column(Integer, ForeignKey('{}.user.id'.format(db.get(write_db))))  # 操作人id;user.id
     oper_uname = Column(String(11))  # 操作人username
     ad_url = Column(String(256))  # 广告链接
     status = Column(Integer, default=2)  # 状态(0：已下架 1：已上架 2:暂存未发布 3:已删除弃用)  -> 同一个位置只能上架一个产品和图片展示方式有关

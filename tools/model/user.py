@@ -8,7 +8,7 @@ from werkzeug.security import generate_password_hash, check_password_hash
 
 class User(Base):
     __tablename__ = 'user'
-    __bind_key__ = db.get("read_db")
+    __bind_key__ = read_db
 
     id = Column(Integer, primary_key=True, autoincrement=True)
     username = Column(String(32), index=True, unique=True)  # 登录名
@@ -31,9 +31,9 @@ class User(Base):
 
 class User2(Base):
     __tablename__ = 'user'
-    __bind_key__ = db.get("write_db")
+    __bind_key__ = write_db
     __table_args__ = {
-        'schema': db.get("write_db"),
+        'schema': db.get(write_db),
         "extend_existing": True
     }
 

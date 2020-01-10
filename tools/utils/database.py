@@ -13,7 +13,7 @@ class InstanceDB(object):
 
     def set(self, handle, **kwargs):
         """
-        绑定db实例
+        绑定db实例,用于数据库session切换
         :param handle:db实例
         :param kwargs: read_db=read_db_name,write_db=write_db_name
         :return:None
@@ -36,5 +36,3 @@ class InstanceDB(object):
 
 
 db = InstanceDB()
-
-__all__ = (db,)

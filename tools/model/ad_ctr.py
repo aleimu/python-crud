@@ -8,7 +8,7 @@ from .base import *
 
 class AdCtr(Base):
     __tablename__ = 'ad_ctr'
-    __bind_key__ = db.get("read_db")  # 读写库区分
+    __bind_key__ = read_db  # 读写库区分
 
     id = Column(Integer, primary_key=True, autoincrement=True)
     code = Column(String(64), nullable=False)  # 广告编号-> redis key
@@ -25,9 +25,9 @@ class AdCtr(Base):
 
 class AdCtr2(Base):
     __tablename__ = 'ad_ctr'
-    __bind_key__ = db.get("write_db")  # 读写库区分
+    __bind_key__ = write_db  # 读写库区分
     __table_args__ = {
-        'schema': db.get("write_db"),  # 读写库区分
+        'schema': db.get(write_db),  # 读写库区分
         "extend_existing": True  # 允许表名重复
     }
 

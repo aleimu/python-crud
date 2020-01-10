@@ -29,7 +29,8 @@ def NewAppDB():
     app.config['SQLALCHEMY_BINDS'] = SQLALCHEMY_BINDS
     # 需要配合app.config['SQLALCHEMY_BINDS'],因为部分model中有参数应用 代替 db = SQLAlchemy(app)
     db.set(SQLAlchemy(app), read_db=READ_DB_NAME, write_db=WRITE_DB_NAME)
-    app.json_encoder = APIEncoder  # 直接修改json对时间/sqlalchemy obj的解析方式
+    # 直接修改json对时间/sqlalchemy obj的解析方式
+    app.json_encoder = APIEncoder
     excel.init_excel(app)
     return app
 

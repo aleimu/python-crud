@@ -16,4 +16,5 @@ register_blueprint()
 
 if __name__ == "__main__":
     # from app import scheduler
+    print(vars(app)["url_map"])
     app.run(host='0.0.0.0', port=3001, threaded=True, debug=True)
