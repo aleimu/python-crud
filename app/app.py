@@ -6,13 +6,13 @@ __version__ = '1.0.0'
 import traceback
 from functools import wraps
 import sqlalchemy.exc
-from flask import Flask, request
+from flask import Flask, request, json
 from flask_sqlalchemy import SQLAlchemy, get_debug_queries
 import flask_excel as excel
 from .config import *
 from cache import rds, rds_token
 from tools.utils.logger import logger
-from tools.utils import APIEncoder, js, SERVER_ERR, DB_ERR, AUTH_FAIL, PARAM_ERR, NOT_AUTH_API
+from tools.utils import APIEncoder, js, SERVER_ERR, DB_ERR, AUTH_FAIL, PARAM_ERR, NOT_AUTH_API, REQ_REPEAT
 from tools.utils import db
 
 
@@ -26,7 +26,10 @@ def NewAppDB():
     app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = SQLALCHEMY_TRACK_MODIFICATIONS
     app.config['DATABASE_QUERY_TIMEOUT'] = DATABASE_QUERY_TIMEOUT  # 配置查询超时时间
     app.config['SQLALCHEMY_RECORD_QUERIES'] = SQLALCHEMY_RECORD_QUERIES  # 保存查询记录
-    app.config['SQLALCHEMY_BINDS'] = SQLALCHEMY_BINDS
+    app.config['SQLALCHEMY_BINDS'] = {
+        read_db: 'mysql://name:pwd@127.0.0.1:3306/%s?charset=utf8' % READ_DB_NAME,
+        write_db: 'mysql://name:pwd@127.0.0.1:3306/%s?charset=utf8' % WRITE_DB_NAME
+    }
     # 需要配合app.config['SQLALCHEMY_BINDS'],因为部分model中有参数应用 代替 db = SQLAlchemy(app)
     db.set(SQLAlchemy(app), read_db=READ_DB_NAME, write_db=WRITE_DB_NAME)
     # 直接修改json对时间/sqlalchemy obj的解析方式
@@ -38,6 +41,21 @@ def NewAppDB():
 app = NewAppDB()
 
 
+# 常用的请求速度限制库
+# from flask_limiter import Limiter, HEADERS  # https://github.com/alisaifee/flask-limiter
+# from flask_limiter.util import get_remote_address
+#
+# RATELIMIT_STORAGE_URL = "redis://127.0.0.1:6379"
+
+# limiter = Limiter(
+#     app,
+#     key_func=get_remote_address,
+#     default_limits=["200 per day", "50 per hour"],
+#     storage_uri=RATELIMIT_STORAGE_URL,
+#     headers_enabled=True  # X-RateLimit写入响应头。
+# )
+
+
 def with_app_context(func):
     """上下文"""
 
@@ -47,6 +65,36 @@ def with_app_context(func):
             return func(*args, **kwargs)
 
     return wrapper
+
+
+def repeat_intercept(ex=5):
+    """拦截重复请求 ex默认5秒"""
+
+    def decorator(func):
+        @wraps(func)
+        def function(*args, **kwargs):  # 放在这一层中才不会Working outside of application context
+            req_dict = request.values.to_dict()
+            req_str = json.dumps(sorted([(x, y) for x, y in req_dict.items()]))
+            if rds.exists(req_str):
+                return js(REQ_REPEAT)
+            else:
+                rds.set(req_str, 0, ex)
+                return func(*args, **kwargs)
+
+        return function
+
+    return decorator
+
+
+@app.route('/test')
+@repeat_intercept(ex=3)
+def logout():
+    token = request.args.get('token')
+    if token:
+        user_info = rds.hgetall(rds_token(token))
+        if user_info:
+            rds.delete(rds_token(token))
+    return js(1000, None, "logout success")
 
 
 @app.before_request

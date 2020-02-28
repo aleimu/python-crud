@@ -8,7 +8,7 @@ read_db = "read_db"
 write_db = "write_db"
 
 NOT_AUTH_API = ('/', '/v1/user/login', '/v1/user/logout', '/v1/user/register', '/v1/advert/show', '/v1/advert/click',
-                '/v1/advert/', '/v1/advert/upload')
+                '/v1/advert/', '/v1/advert/upload', "/test")
 ALLOWED_EXTENSIONS = {'txt', 'pdf', 'png', 'jpg', 'jpeg', 'gif', 'bmp'}
 ALLOWED_STATUS = (100, 200, 201, 202, 300, 301, 302, 400, 401, 402, 500, 501, 502, 503)
 
@@ -25,3 +25,4 @@ FILE_ILLEGAL = 1009
 VALUE_ERROR = 1010
 NO_DATA = 1011
 DB_ERROR = 1012
+REQ_REPEAT = 1013

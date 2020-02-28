@@ -21,10 +21,6 @@ SQLALCHEMY_RECORD_QUERIES = True
 SQLALCHEMY_ECHO = False
 SQLALCHEMY_TRACK_MODIFICATIONS = True
 SQLALCHEMY_DATABASE_URI = 'mysql://name:pwd@127.0.0.1:3306/%s?charset=utf8' % WRITE_DB_NAME
-SQLALCHEMY_BINDS = {
-    read_db: 'mysql://name:pwd@127.0.0.1:3306/%s?charset=utf8' % READ_DB_NAME,
-    write_db: 'mysql://name:pwd@127.0.0.1:3306/%s?charset=utf8' % WRITE_DB_NAME
-}
 
 # redis缓存配置
 REDIS_DB = 15
