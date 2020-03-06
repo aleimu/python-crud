@@ -18,7 +18,7 @@ from tools.utils import db
 
 def NewAppDB():
     app = Flask(__name__)
-
+    # app.config['JSON_AS_ASCII'] = False
     app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
     app.config['SECRET_KEY'] = SECRET_KEY
     app.config['SQLALCHEMY_ECHO'] = False
@@ -67,16 +67,20 @@ def with_app_context(func):
     return wrapper
 
 
-def repeat_intercept(ex=5):
+def repeat_intercept(ex=5, ip_path=True):
     """拦截重复请求 ex默认5秒"""
 
     def decorator(func):
         @wraps(func)
         def function(*args, **kwargs):  # 放在这一层中才不会Working outside of application context
-            req_dict = request.values.to_dict()
-            req_str = json.dumps(sorted([(x, y) for x, y in req_dict.items()]))
+            req_str = "intercept:"
+            if ip_path:
+                req_str += request.remote_addr + request.path
+            else:
+                req_dict = request.values.to_dict()
+                req_str += json.dumps(sorted([(x, y) for x, y in req_dict.items()]))
             if rds.exists(req_str):
-                return js(REQ_REPEAT)
+                return js(REQ_REPEAT, "请求频率过高")
             else:
                 rds.set(req_str, 0, ex)
                 return func(*args, **kwargs)
@@ -88,7 +92,7 @@ def repeat_intercept(ex=5):
 
 @app.route('/test')
 @repeat_intercept(ex=3)
-def logout():
+def just_for_test():
     token = request.args.get('token')
     if token:
         user_info = rds.hgetall(rds_token(token))
