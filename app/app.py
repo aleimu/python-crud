@@ -4,9 +4,10 @@ __date__ = "2019-01-01"
 __version__ = '1.0.0'
 
 import traceback
+import requests
 from functools import wraps
 import sqlalchemy.exc
-from flask import Flask, request, json
+from flask import Flask, request, json, Response
 from flask_sqlalchemy import SQLAlchemy, get_debug_queries
 import flask_excel as excel
 from .config import *
@@ -14,6 +15,8 @@ from cache import rds, rds_token
 from tools.utils.logger import logger
 from tools.utils import APIEncoder, js, SERVER_ERR, DB_ERR, AUTH_FAIL, PARAM_ERR, NOT_AUTH_API, REQ_REPEAT
 from tools.utils import db
+
+S = requests.Session()
 
 
 def NewAppDB():
@@ -99,6 +102,17 @@ def just_for_test():
         if user_info:
             rds.delete(rds_token(token))
     return js(1000, None, "logout success")
+
+
+# 依赖接口设计,路由动态转发
+@app.route('/vx/transit', methods=['GET', "POST", "PUT", "DELETE"])
+def transit_route():
+    kwargs = request.values.to_dict()
+    res = S.request(request.method, kwargs.get('url'), params=kwargs.get('params'), json=kwargs.get('json'),
+                    data=kwargs.get('data'),
+                    files=kwargs.get('files'), timeout=5)
+    # return rw(cs.OK, res.content)
+    return Response(res.content)
 
 
 @app.before_request

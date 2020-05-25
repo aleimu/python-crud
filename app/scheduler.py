@@ -1,46 +1,77 @@
 # -*- coding:utf-8 -*-
 __author__ = "leimu"
-__date__ = "2018-09-21"
+__doc__ = "通用的定时任务组件"
 
 import datetime
-from apscheduler.schedulers.background import BackgroundScheduler
-from route import cron_job_hour, cron_job_day
-from cache import rds
+from flask import request, jsonify
+from flask_apscheduler import APScheduler
+from apscheduler.jobstores.redis import RedisJobStore
+from .app import app
+from .config import REDIS_DB, REDIS_HOST, REDIS_PORT, REDIS_PWD
 
-show_key = "hour_show_{}".format  # 单条广告的曝光量的redis中的key
-click_key = "hour_click_{}".format  # click_key = "code%s"
-day_show_key = "day_show_{}".format  # 单条广告的日曝光量的redis中的key,按0-23小时段统计
-day_click_key = "day_click_{}".format
+app.config['SCHEDULER_JOBSTORES'] = {
+    'default': RedisJobStore(jobs_key='demo.apscheduler.jobs', run_times_key='demo.apscheduler.run_times',
+                             db=REDIS_DB,
+                             host=REDIS_HOST,
+                             port=REDIS_PORT,
+                             password=REDIS_PWD)
+}
 
-
-# FLASK DEBUG模式下定时任务会执行两次
-def aps_test():
-    print (datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S'), '你好')
-
-
-defult_code = "5bc30530-ac41-11e9-9162-6c4b9029bde1"  # 自测
-
-
-def show_count():
-    """曝光计数"""
-    print("one show", show_key(defult_code))
-    rds.incr(show_key(defult_code))
+app.config['SCHEDULER_EXECUTORS'] = {
+    'default': {'type': 'threadpool', 'max_workers': 20}
+}
 
 
-def click_count():
-    """点击计数"""
-    print("one click", click_key(defult_code))
-    rds.incr(click_key(defult_code))
+def alive():
+    print("******i am alive!******")
 
 
-scheduler = BackgroundScheduler()
-scheduler.add_job(func=aps_test, trigger='cron', second='*/50')
-scheduler.add_job(func=cron_job_hour, trigger='cron', hour='*/1')
-scheduler.add_job(func=cron_job_day, trigger='cron', day='*/1')
-scheduler.add_job(func=show_count, trigger='cron', second='*/30')
-scheduler.add_job(func=click_count, trigger='cron', minute='*/5')
+app.config['SCHEDULER_API_ENABLED'] = True
+scheduler = APScheduler()
+scheduler.init_app(app)
+scheduler.add_job(id='keepalive', func=alive, args=(), trigger='interval', seconds=60, replace_existing=True)
 
 scheduler.start()
+
+
+def job1(a, b):
+    print(str(a) + ' ' + str(b))
+
+
+@app.route("/vx/job")
+def add_job():
+    a = scheduler.add_job(id="example0", func=job1, args=('循环任务', '-----------'), trigger='interval', seconds=3,
+                          replace_existing=True)
+    scheduler.add_job(id="example1", func=job1, args=('定时任务', '-----------'), trigger='cron', second='*/5')
+    scheduler.add_job(id="example2", func=job1, args=('一次性任务', '-----------'),
+                      next_run_time=datetime.datetime.now() + datetime.timedelta(seconds=12),
+                      replace_existing=True)
+    # 在 2019-08-29 22:15:00至2019-08-29 22:17:00期间，每隔1分30秒 运行一次 job 方法
+    scheduler.add_job(id="example3", func=job1, args=['阶段性循环任务', '-----------'], trigger='interval', minutes=1,
+                      seconds=30, start_date='2019-08-29 22:15:00', end_date='2019-08-29 22:17:00')
+    return jsonify({"job": str(a)})
+
+
+@app.route("/vx/job", methods=['DELETE'])
+def remove_job():
+    job_id = request.values.get("id")
+    a = scheduler.remove_job(id=job_id)
+
+    return jsonify({"job": str(a)})
+
+
+@app.route("/vx/job", methods=['PUT'])
+def run_job():
+    job_id = request.values.get("id")
+    a = scheduler.run_job(id=job_id)
+    return jsonify({"job": str(a)})
+
+
+@app.route("/vx/jobs", methods=['GET'])
+def get_all_jobs():
+    a = scheduler.get_jobs()
+    return jsonify({"job": str(a)})
+
 
 try:
     import uwsgi

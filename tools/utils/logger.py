@@ -23,6 +23,9 @@ LOG_PATH = os.path.realpath(os.getcwd()) + '/logs/'  # 文件路径
 class MultiCompatibleTimedRotatingFileHandler(TimedRotatingFileHandler):
     """ 多进程下输出到同一日志文件的handler"""
 
+    # def __init__(self, *args, **kargs):
+    #     super().__init__(*args, **kargs)
+
     def doRollover(self):
         if self.stream:
             self.stream.close()
