@@ -16,7 +16,7 @@ requires = [
     'MySQL-python==1.2.3',
     'requests==2.21.0',
     'redis==3.2.1',
-    'celery==4.3.0',
+    'celery==5.2.2',
     'xlrd==1.2.0',
     'xlwt==1.3.0',
 ]
